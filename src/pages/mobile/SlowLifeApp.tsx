@@ -3,13 +3,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, ChevronRight, Heart, Home, MessageCircle, Mic, Send, ShieldAlert, Type, Camera, ThumbsUp, Video, CreditCard, MailOpen, Gift, Landmark, Hospital, Users, Eye, Headphones, CircleHelp, Clock3, BookHeart, MessageCirclePlus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { LeafSprig, Xiaoman, xiaomanArt } from "@/components/mobile/Xiaoman";
+import WechatLessonPage from "@/pages/mobile/WechatLessons";
 
 type CategoryKey = "wechat" | "life" | "fraud" | "health";
 type Item = { label: string; desc: string; icon: ElementType; href?: string };
 
 const categories: Record<CategoryKey, { title: string; intro: string; tone: string; note: string; items: Item[] }> = {
   wechat: { title: "学用微信", intro: "一步一步学，学不会就再来一遍。", tone: "green", note: "不赶时间，慢慢学", items: [
-    { label: "发朋友圈", icon: Camera, desc: "拍张照片、写句话，分享给家人朋友" }, { label: "点赞和评论", icon: ThumbsUp, desc: "看到喜欢的，点个赞、说句话" }, { label: "视频聊天", icon: Video, desc: "和家人面对面说话" }, { label: "微信付款", icon: CreditCard, desc: "买东西的时候怎么付钱" }, { label: "领红包", icon: MailOpen, desc: "别人发来的红包怎么收" }, { label: "发红包", icon: Gift, desc: "过节给家人发个红包" }
+    { label: "发朋友圈", icon: Camera, desc: "拍张照片、写句话，分享给家人朋友", href: "/wechat/lesson/moments" }, { label: "点赞和评论", icon: ThumbsUp, desc: "看到喜欢的，点个赞、说句话", href: "/wechat/lesson/like" }, { label: "视频聊天", icon: Video, desc: "和家人面对面说话", href: "/wechat/lesson/video" }, { label: "微信付款", icon: CreditCard, desc: "买东西的时候怎么付钱", href: "/wechat/lesson/pay" }, { label: "领红包", icon: MailOpen, desc: "别人发来的红包怎么收", href: "/wechat/lesson/giftIn" }, { label: "发红包", icon: Gift, desc: "过节给家人发个红包", href: "/wechat/lesson/giftOut" }
   ]},
   life: { title: "生活小帮手", intro: "出门办事不着急，提前看一遍就踏实。", tone: "orange", note: "出门前看一眼，心里更踏实", items: [
     { label: "存钱取钱", icon: Landmark, desc: "去银行存钱、取钱的步骤" }, { label: "挂号和缴费", icon: Hospital, desc: "医院挂号和缴费怎么办" }, { label: "联系家人", icon: Users, desc: "把家人的电话放在这里，想打就打" }
@@ -113,6 +114,13 @@ function ChatPage() {
 
 export default function SlowLifeApp() {
   const location = useLocation(); const [bigText, setBigText] = useBigText();
-  const content = useMemo(() => { const key = location.pathname.slice(1) as CategoryKey; if (location.pathname === "/chat") return <ChatPage/>; if (key in categories) return <CategoryPage category={key}/>; return <HomePage bigText={bigText} setBigText={setBigText}/>; }, [location.pathname, bigText]);
+  const content = useMemo(() => {
+    const lessonMatch = /^\/wechat\/lesson\/([\w-]+)$/.exec(location.pathname);
+    if (lessonMatch) return <WechatLessonPage key={lessonMatch[1]} lessonKey={lessonMatch[1]}/>;
+    if (location.pathname === "/chat") return <ChatPage/>;
+    const key = location.pathname.slice(1) as CategoryKey;
+    if (key in categories) return <CategoryPage category={key}/>;
+    return <HomePage bigText={bigText} setBigText={setBigText}/>;
+  }, [location.pathname, bigText]);
   return <main className="app-shell"><div className="paper-grain" aria-hidden="true"/>{content}</main>;
 }
