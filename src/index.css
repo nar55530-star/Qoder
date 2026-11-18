@@ -165,3 +165,35 @@ html.big-text .talk-btn { margin-top: .6rem; }
 html.big-text .wx { font-size: 1rem; }
 html.big-text .step-card h2 { font-size: 1.5rem; }
 html.big-text .wx-menu-item { padding: .5rem .85rem; }
+
+/* ---------- 生活场景示意图 ---------- */
+
+.scene { position: relative; display: flex; flex-direction: column; gap: .6rem; margin-top: 1.05rem; padding: .9rem .8rem; border: 1px solid rgba(169,137,92,.4); border-radius: .95rem .35rem .95rem .35rem; background: linear-gradient(135deg, rgba(255,253,248,.98), rgba(247,233,204,.85)); }
+.scene-ticket { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: 1rem .8rem; border: 2px dashed rgba(155,97,46,.55); border-radius: .5rem; background: var(--white); color: var(--orange-deep); }
+.scene-ticket strong { font-size: 2rem; letter-spacing: .14em; }
+.scene-ticket span { font-size: .9rem; color: var(--muted); }
+.scene-counter { display: block; padding: .85rem 1rem; border-radius: .5rem; background: var(--green-deep); color: var(--white); text-align: center; font-weight: 700; font-size: 1.05rem; letter-spacing: .03em; }
+.scene-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; width: min(100%, 13rem); margin: 0 auto; }
+.scene-keypad i { display: grid; place-items: center; height: 2.5rem; border-radius: .45rem; background: var(--white); border: 1.5px solid var(--line); color: var(--ink); font-style: normal; font-weight: 700; font-size: 1.05rem; }
+.scene-slip { display: flex; flex-direction: column; gap: .35rem; padding: .85rem 1rem; border: 1.5px dashed rgba(169,137,92,.6); border-radius: .4rem; background: var(--white); }
+.scene-slip-title { font-weight: 800; color: var(--orange-deep); font-size: 1rem; padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+.scene-slip-line { color: var(--ink); font-size: .98rem; line-height: 1.5; }
+.scene-screen { display: block; padding: 1rem; border-radius: .5rem; background: #23302a; color: #bfe6c6; text-align: center; font-weight: 700; font-size: 1.1rem; letter-spacing: .05em; }
+
+/* ---------- 联系家人电话本 ---------- */
+
+.contact-list { display: flex; flex-direction: column; gap: .8rem; padding: 1rem 1.1rem 0; }
+.contact-empty { margin: 0; padding: 1.6rem 1.2rem; border: 1.5px dashed var(--line); border-radius: 1.2rem .5rem 1.2rem .5rem; text-align: center; color: var(--muted); line-height: 1.8; font-size: 1.02rem; }
+.contact-card { display: grid; grid-template-columns: 1fr auto; gap: .5rem .8rem; align-items: center; padding: .95rem 1rem; border: 1px solid rgba(169,137,92,.3); border-radius: .55rem 1.3rem .55rem 1.3rem; background: rgba(255,253,248,.92); box-shadow: var(--soft-shadow); }
+.contact-copy { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.contact-name { font-size: 1.3rem; font-weight: 800; }
+.contact-phone { color: var(--muted); font-size: .98rem; letter-spacing: .04em; }
+.contact-call { display: flex; align-items: center; gap: .4rem; min-height: 3.1rem; padding: 0 1.15rem; border-radius: 999px; background: var(--green-deep); color: var(--white); font-weight: 800; text-decoration: none; box-shadow: 0 4px 0 #31563d; transition: transform .15s ease, box-shadow .15s ease; }
+.contact-call:active { transform: translateY(3px); box-shadow: 0 1px 0 #31563d; }
+.contact-del { grid-column: 1 / -1; justify-self: start; display: flex; align-items: center; gap: .3rem; padding: .2rem 0; border: 0; background: none; color: var(--muted); font-size: .85rem; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.contact-add { display: flex; flex-direction: column; gap: .65rem; margin: 1.1rem 1.1rem 0; padding: 1.05rem 1rem 1.1rem; border: 1px solid rgba(169,137,92,.3); border-radius: 1.3rem .5rem 1.3rem .5rem; background: rgba(255,253,248,.92); box-shadow: var(--soft-shadow); }
+.contact-add-title { display: flex; align-items: center; gap: .4rem; margin: 0; color: var(--orange-deep); font-weight: 800; font-size: 1.08rem; }
+.contact-add input { height: 3.1rem; padding: 0 .95rem; border: 1.5px solid var(--line); border-radius: .85rem; background: var(--white); color: var(--ink); font-size: 1.05rem; }
+.contact-add input::placeholder { color: #9a8a78; }
+.contact-add .talk-btn { margin-top: .2rem; }
+.contact-note { margin: .9rem 1.1rem 0; color: var(--muted); font-size: .88rem; line-height: 1.65; }

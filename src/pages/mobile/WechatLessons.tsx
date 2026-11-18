@@ -1,7 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { ArrowLeft, Camera, Plus, PhoneOff } from "lucide-react";
+import { type ReactNode } from "react";
+import { Camera, Plus, PhoneOff } from "lucide-react";
+import LessonSteps from "@/components/mobile/LessonSteps";
 
 type WxItem =
   | { k: "row"; label: string; hi?: boolean }
@@ -317,7 +316,6 @@ function WxWindow({ step }: { step: Step }) {
       {step.plusHi
         ? <Hi><span className="wx-plus"><Plus size={16} /></span></Hi>
         : null}
-      <p className="wx-note">微信界面 · 简化示意图（不是真实截图）</p>
     </div>
   );
 }
@@ -379,64 +377,18 @@ function WxItemView({ item }: { item: WxItem }) {
 }
 
 export default function WechatLessonPage({ lessonKey }: { lessonKey: string }) {
-  const navigate = useNavigate();
   const lesson = wechatLessons.find(l => l.key === lessonKey);
-  const storageKey = `mm-lesson-${lessonKey}`;
-  const [stepIndex, setStepIndex] = useState(() => {
-    const saved = Number(localStorage.getItem(storageKey) || "0");
-    return Number.isInteger(saved) && saved >= 1 ? saved : 1;
-  });
-
-  useEffect(() => {
-    const saved = Number(localStorage.getItem(storageKey) || "0");
-    if (saved >= 2 && lesson && saved <= lesson.steps.length) toast(`接着上次，从第 ${saved} 步继续学。`);
-  }, []);
-
-  useEffect(() => { localStorage.setItem(storageKey, String(stepIndex)); }, [stepIndex, storageKey]);
-
-  if (!lesson) return <div className="category-page page-enter tone-page-green"><header className="category-head"><button className="back-btn" onClick={() => navigate("/wechat")} aria-label="返回学用微信"><ArrowLeft size={28}/></button><div><h1>课程还在准备中</h1></div></header></div>;
-
-  const step = lesson.steps[stepIndex - 1];
-  const total = lesson.steps.length;
-  const atEnd = stepIndex === total;
-
-  const finish = () => { localStorage.removeItem(storageKey); navigate("/wechat"); toast("学完啦，记不住随时回来再看。"); };
-  const restart = () => { setStepIndex(1); toast("好，咱们从头再看一遍。"); };
-
-  return (
-    <div className="category-page page-enter tone-page-green lesson-page">
-      <header className="category-head">
-        <button className="back-btn" onClick={() => navigate("/wechat")} aria-label="返回学用微信"><ArrowLeft size={28}/></button>
-        <div>
-          <p>{lesson.title}</p>
-          <h1>第 {stepIndex} 步 · 共 {total} 步</h1>
-          <span>{step.title}</span>
-        </div>
-      </header>
-      <div className="step-dots" aria-label="学习进度">
-        {lesson.steps.map((s, i) => <span key={s.title} className={`step-dot ${i < stepIndex ? "is-done" : ""} ${i === stepIndex - 1 ? "is-now" : ""}`}>{i + 1}</span>)}
-      </div>
-      <main className="lesson-main">
-        <section className="step-card">
-          <h2>{step.title}</h2>
-          <p>{step.text}</p>
-          {step.hiText ? <p className="step-hint">↳ {step.hiText}</p> : null}
-          <WxWindow step={step} />
-        </section>
-        {lesson.fraud ? <aside className="fraud-banner"><strong>防骗提醒</strong><span>{lesson.fraud}</span></aside> : null}
-        {lesson.tip ? <p className="lesson-tip">小提示：{lesson.tip}</p> : null}
-      </main>
-      <nav className="lesson-controls">
-        {atEnd
-          ? <>
-              <button className="talk-btn" onClick={finish}>学完啦，回列表</button>
-              <button className="anim-toggle" onClick={restart}>没记住，再看一遍</button>
-            </>
-          : <>
-              <button className="lesson-prev" onClick={() => setStepIndex(n => Math.max(1, n - 1))} disabled={stepIndex === 1}>上一步</button>
-              <button className="talk-btn" onClick={() => setStepIndex(n => Math.min(total, n + 1))}>下一步</button>
-            </>}
-      </nav>
-    </div>
-  );
+  if (!lesson) return <LessonSteps tone="green" storageKey={`mm-lesson-${lessonKey}`} backTo="/wechat" lesson={{ title: "课程还在准备中", steps: [{ title: "这节课还没做好", text: "做好后就能学了，先看看别的吧。" }] }}/>;
+  return <LessonSteps
+    tone="green"
+    storageKey={`mm-lesson-${lesson.key}`}
+    backTo="/wechat"
+    mockNote="微信界面 · 简化示意图（不是真实截图）"
+    lesson={{
+      title: lesson.title,
+      tip: lesson.tip,
+      fraud: lesson.fraud,
+      steps: lesson.steps.map(s => ({ title: s.title, text: s.text, hint: s.hiText, mock: <WxWindow step={s}/> }))
+    }}
+  />;
 }

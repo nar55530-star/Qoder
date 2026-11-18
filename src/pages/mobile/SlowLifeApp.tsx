@@ -4,6 +4,8 @@ import { ArrowLeft, ChevronRight, Heart, Home, MessageCircle, Mic, Send, ShieldA
 import { toast } from "sonner";
 import { LeafSprig, Xiaoman, xiaomanArt } from "@/components/mobile/Xiaoman";
 import WechatLessonPage from "@/pages/mobile/WechatLessons";
+import LifeLessonPage from "@/pages/mobile/LifeLessons";
+import ContactsPage from "@/pages/mobile/ContactsPage";
 
 type CategoryKey = "wechat" | "life" | "fraud" | "health";
 type Item = { label: string; desc: string; icon: ElementType; href?: string };
@@ -13,7 +15,7 @@ const categories: Record<CategoryKey, { title: string; intro: string; tone: stri
     { label: "发朋友圈", icon: Camera, desc: "拍张照片、写句话，分享给家人朋友", href: "/wechat/lesson/moments" }, { label: "点赞和评论", icon: ThumbsUp, desc: "看到喜欢的，点个赞、说句话", href: "/wechat/lesson/like" }, { label: "视频聊天", icon: Video, desc: "和家人面对面说话", href: "/wechat/lesson/video" }, { label: "微信付款", icon: CreditCard, desc: "买东西的时候怎么付钱", href: "/wechat/lesson/pay" }, { label: "领红包", icon: MailOpen, desc: "别人发来的红包怎么收", href: "/wechat/lesson/giftIn" }, { label: "发红包", icon: Gift, desc: "过节给家人发个红包", href: "/wechat/lesson/giftOut" }
   ]},
   life: { title: "生活小帮手", intro: "出门办事不着急，提前看一遍就踏实。", tone: "orange", note: "出门前看一眼，心里更踏实", items: [
-    { label: "存钱取钱", icon: Landmark, desc: "去银行存钱、取钱的步骤" }, { label: "挂号和缴费", icon: Hospital, desc: "医院挂号和缴费怎么办" }, { label: "联系家人", icon: Users, desc: "把家人的电话放在这里，想打就打" }
+    { label: "存钱取钱", icon: Landmark, desc: "去银行存钱、取钱的步骤", href: "/life/lesson/bank" }, { label: "挂号和缴费", icon: Hospital, desc: "医院挂号和缴费怎么办", href: "/life/lesson/hospital" }, { label: "联系家人", icon: Users, desc: "把家人的电话放在这里，想打就打", href: "/life/contacts" }
   ]},
   fraud: { title: "防骗提醒", intro: "遇事不慌，先停一停、问一问。", tone: "purple", note: "拿不准时，先别转钱", items: [
     { label: "看看常见骗局", icon: Eye, desc: "了解最常见的骗人套路" }, { label: "听听防骗提醒", icon: Headphones, desc: "用耳朵听，防骗要点一条条讲" }, { label: "这件事靠谱吗", icon: CircleHelp, desc: "拿不准的事，先来问一问" }
@@ -117,6 +119,9 @@ export default function SlowLifeApp() {
   const content = useMemo(() => {
     const lessonMatch = /^\/wechat\/lesson\/([\w-]+)$/.exec(location.pathname);
     if (lessonMatch) return <WechatLessonPage key={lessonMatch[1]} lessonKey={lessonMatch[1]}/>;
+    const lifeLessonMatch = /^\/life\/lesson\/([\w-]+)$/.exec(location.pathname);
+    if (lifeLessonMatch) return <LifeLessonPage key={lifeLessonMatch[1]} lessonKey={lifeLessonMatch[1]}/>;
+    if (location.pathname === "/life/contacts") return <ContactsPage/>;
     if (location.pathname === "/chat") return <ChatPage/>;
     const key = location.pathname.slice(1) as CategoryKey;
     if (key in categories) return <CategoryPage category={key}/>;
