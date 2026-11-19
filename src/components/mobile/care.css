@@ -1,0 +1,148 @@
+.care-page {
+  --care-accent: #30564d;
+  --care-tint: #dcebe3;
+  --care-border: #afc8b9;
+}
+
+.care-page.tone-page-purple {
+  --care-accent: #52416d;
+  --care-tint: #eee6f5;
+  --care-border: #cbb9dc;
+}
+
+.care-head.category-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding-bottom: 1.65rem;
+}
+
+.care-head h1 { color: var(--care-accent); font-size: 1.96rem; }
+.care-topline { display: flex; justify-content: space-between; align-items: center; gap: .6rem; margin-bottom: .92rem; }
+.care-topline .back-btn { min-width: 52px; min-height: 52px; }
+.care-topline .bigtext-btn { min-height: 52px; }
+.care-head .care-description { margin: .42rem 0 0; color: var(--ink); font-size: 1rem; line-height: 1.6; font-weight: 400; }
+.care-content { display: grid; gap: .86rem; padding: 1.05rem 1.1rem 1.4rem; }
+.care-content :is(h2, h3, p) { margin: 0; }
+.care-content h2 { color: var(--care-accent); font-size: 1.28rem; line-height: 1.35; }
+.care-content h3 { color: var(--care-accent); font-size: 1.08rem; line-height: 1.35; }
+.care-content :is(p, li, strong, small, button, a) { overflow-wrap: anywhere; }
+.care-panel, .care-summary {
+  min-width: 0;
+  padding: .92rem;
+  border: 1px solid var(--care-border);
+  border-radius: 1.2rem .52rem 1.2rem .52rem;
+  background: var(--white);
+  box-shadow: var(--soft-shadow);
+}
+.care-summary {
+  color: var(--care-accent);
+  background: radial-gradient(ellipse at top right, var(--care-tint), transparent 75%), var(--white);
+}
+.care-summary-heading { display: flex; align-items: center; gap: .7rem; }
+.care-summary-heading p { line-height: 1.5; font-size: .9rem; }
+.care-emblem {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: .9rem .38rem .9rem .38rem;
+  color: var(--care-accent);
+  background: var(--care-tint);
+}
+.care-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin-top: .85rem; }
+.care-stats > div {
+  display: grid; gap: .17rem; padding: .64rem;
+  border: 1px solid var(--care-border); border-radius: .65rem; background: var(--white);
+}
+.care-stats strong { font-size: 1.33rem; font-variant-numeric: tabular-nums; }
+.care-stats small, .care-stats span { font-size: .83rem; }
+.care-menu, .care-records { display: grid; gap: .58rem; }
+.care-menu-link {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .65rem;
+  min-height: 56px; padding: .65rem .7rem; border: 1px solid var(--care-border);
+  border-radius: .55rem 1.08rem .55rem 1.08rem; background: var(--white);
+  color: var(--ink); box-shadow: var(--soft-shadow);
+}
+.care-menu-link strong, .care-menu-link small { display: block; }
+.care-menu-link strong { font-size: 1.08rem; }
+.care-menu-link small { margin-top: .16rem; color: #6d594c; font-size: .86rem; line-height: 1.48; }
+.care-menu-link > svg { color: var(--care-accent); }
+.care-note, .care-status, .care-error { font-size: .9rem; line-height: 1.6; }
+.care-note { color: #6d594c; }
+.care-panel h2 + .care-note { margin-top: .38rem; }
+.care-status { color: var(--care-accent); }
+.care-status:empty { display: none; }
+.care-error, .fraud-feedback { padding: .55rem .65rem; border-radius: .62rem; color: #763d2c; background: #f7e7da; }
+.care-empty { margin: .62rem 0 !important; padding: .72rem; border: 1px dashed var(--care-border); border-radius: .6rem; color: #6d594c; }
+.care-records { padding: 0; margin: .6rem 0; list-style: none; }
+.care-records:empty { display: none; }
+.care-record { display: grid; gap: .22rem; min-width: 0; border: 1px solid var(--care-border); padding: .65rem; border-radius: .65rem; background: #f7f8f0; }
+.care-record-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .65rem; }
+.care-record-heading time { color: var(--care-accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.care-state { padding: .15rem .45rem; font-size: .8rem; font-weight: 700; border-radius: .4rem; background: #eee8da; color: #614f3c; }
+.care-state[data-done="true"] { color: var(--care-accent); background: var(--care-tint); }
+.care-reading-value { color: var(--care-accent); font-size: 1.22rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.care-actions { display: flex; flex-wrap: wrap; gap: .38rem .45rem; margin-top: .45rem; }
+.care-button, .care-text-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: .32rem;
+  min-width: 48px; min-height: 52px; max-width: 100%;
+  padding: .38rem .58rem; border: 1px solid var(--care-border); border-radius: .68rem;
+  color: var(--care-accent); background: var(--white); font-weight: 700; font-size: .88rem;
+  line-height: 1.45; text-align: center; text-decoration: none;
+}
+.care-button > svg, .care-text-button > svg { flex-shrink: 0; }
+.care-primary, .fraud-call { background: var(--care-accent); border-color: var(--care-accent); color: var(--white); }
+.care-text-button { width: fit-content; padding-inline: .25rem; border: 0; background: transparent; text-decoration: underline; text-underline-offset: .17em; }
+.care-page :is(button, a, select, input, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--care-accent); outline-offset: 3px; }
+.care-details summary { min-height: 48px; cursor: pointer; font-weight: 800; color: var(--care-accent); }
+.care-form { display: grid; gap: .63rem; }
+.care-form label { display: grid; gap: .25rem; min-width: 0; font-weight: 700; }
+.care-form :is(input, textarea, select) {
+  min-height: 52px; width: 100%; min-width: 0; padding: .46rem .58rem;
+  border: 1px solid var(--care-border); border-radius: .52rem; background: var(--white);
+  color: var(--ink); font: inherit; font-weight: 400;
+}
+.care-form textarea { resize: vertical; }
+.care-input-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .48rem; }
+.care-steps { display: grid; gap: .55rem; margin: .65rem 0; padding-inline-start: 1.45rem; list-style: decimal; }
+.care-steps li { padding-inline-start: .13rem; line-height: 1.6; }
+.care-steps li::marker { color: var(--care-accent); font-weight: 800; }
+.care-steps span { display: block; }
+
+.care-content .care-section-title { margin-bottom: .6rem; }
+.fraud-summary .fraud-help-link { margin-top: .72rem; }
+.fraud-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.fraud-option {
+  min-width: 0; min-height: 100px; display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-content: space-between; align-items: center; gap: .4rem;
+  padding: .57rem; border: 1px solid var(--care-border); border-radius: .72rem;
+  color: var(--care-accent); background: var(--white); text-align: left; font-weight: 800;
+}
+.fraud-option .care-emblem { grid-column: 1 / -1; width: 2.2rem; height: 2.2rem; }
+.fraud-option[aria-pressed="true"], .fraud-answers button[aria-pressed="true"] { background: var(--care-tint); border-color: var(--care-accent); }
+.fraud-context { color: var(--care-accent); font-size: .86rem; font-weight: 700; }
+.fraud-result h2 { margin-top: .3rem; scroll-margin-top: 1rem; }
+.fraud-result .care-status:not(:empty) { margin-top: .32rem; }
+.fraud-practice { border-top: 1px dashed var(--care-border); margin-top: .78rem; padding-top: .73rem; }
+.fraud-practice > p { margin-top: .4rem; line-height: 1.6; }
+.fraud-answers { display: grid; gap: .42rem; margin-top: .57rem; }
+.fraud-answers .care-button { justify-content: flex-start; padding-inline: .65rem; text-align: left; }
+.fraud-feedback { display: flex; align-items: center; gap: .35rem; }
+.fraud-feedback.is-safe { background: #dfede0; color: #315b43; }
+.fraud-feedback svg { flex-shrink: 0; }
+.fraud-help { border-color: #d7ba9c; }
+.fraud-help h2 { scroll-margin-top: 1rem; }
+.fraud-call { color: var(--white); background: #834933; border-color: #834933; }
+.fraud-read-more { display: inline-flex; align-items: center; align-self: flex-start; min-height: 48px; font-weight: 700; text-decoration: underline; text-underline-offset: .18em; }
+.fraud-read-more:focus-visible { outline: 3px solid var(--purple-deep); outline-offset: 3px; }
+html.big-text .fraud-options { grid-template-columns: 1fr; }
+html.big-text .fraud-option { grid-template-columns: auto minmax(0, 1fr) auto; min-height: 60px; }
+html.big-text .fraud-option .care-emblem { grid-column: auto; }
+
+@media (max-width: 23rem) {
+  .care-content { padding-inline: .72rem; }
+  .care-head.category-head { padding-inline: .85rem; }
+}

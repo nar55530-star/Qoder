@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ElementType, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronRight, Heart, Home, MessageCircle, Mic, Send, ShieldAlert, Type, Camera, ThumbsUp, Video, CreditCard, MailOpen, Gift, Landmark, Hospital, Users, Eye, Headphones, CircleHelp, Clock3, BookHeart, MessageCirclePlus, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronRight, Heart, Home, MessageCircle, Mic, Send, ShieldAlert, Type, Camera, ThumbsUp, Video, CreditCard, MailOpen, Gift, Landmark, Hospital, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { LeafSprig, Xiaoman, xiaomanArt } from "@/components/mobile/Xiaoman";
 import WechatLessonPage from "@/pages/mobile/WechatLessons";
 import LifeLessonPage from "@/pages/mobile/LifeLessons";
 import ContactsPage from "@/pages/mobile/ContactsPage";
+import FraudPage from "@/pages/mobile/FraudPage";
+import HealthPage from "@/pages/mobile/HealthPage";
 
-type CategoryKey = "wechat" | "life" | "fraud" | "health";
+type CategoryKey = "wechat" | "life";
 type Item = { label: string; desc: string; icon: ElementType; href?: string };
 
 const categories: Record<CategoryKey, { title: string; intro: string; tone: string; note: string; items: Item[] }> = {
@@ -16,12 +18,6 @@ const categories: Record<CategoryKey, { title: string; intro: string; tone: stri
   ]},
   life: { title: "生活小帮手", intro: "出门办事不着急，提前看一遍就踏实。", tone: "orange", note: "出门前看一眼，心里更踏实", items: [
     { label: "存钱取钱", icon: Landmark, desc: "去银行存钱、取钱的步骤", href: "/life/lesson/bank" }, { label: "挂号和缴费", icon: Hospital, desc: "医院挂号和缴费怎么办", href: "/life/lesson/hospital" }, { label: "联系家人", icon: Users, desc: "把家人的电话放在这里，想打就打", href: "/life/contacts" }
-  ]},
-  fraud: { title: "防骗提醒", intro: "遇事不慌，先停一停、问一问。", tone: "purple", note: "拿不准时，先别转钱", items: [
-    { label: "看看常见骗局", icon: Eye, desc: "了解最常见的骗人套路" }, { label: "听听防骗提醒", icon: Headphones, desc: "用耳朵听，防骗要点一条条讲" }, { label: "这件事靠谱吗", icon: CircleHelp, desc: "拿不准的事，先来问一问" }
-  ]},
-  health: { title: "健康管理", intro: "每天记一点，健康看得见。", tone: "teal", note: "照顾好自己，也让家人放心", items: [
-    { label: "吃药提醒", icon: Clock3, desc: "到点提醒您吃药，不怕忘" }, { label: "记录身体情况", icon: BookHeart, desc: "血压、血糖，随手记下来" }, { label: "问问健康问题", icon: MessageCirclePlus, desc: "有不舒服，先问问小慢", href: "/chat" }
   ]}
 };
 
@@ -46,8 +42,15 @@ function usePrefersReducedMotion() {
 }
 
 function useBigText() {
-  const [bigText, setBigText] = useState(() => localStorage.getItem("mm-big") === "1");
-  useEffect(() => { document.documentElement.classList.toggle("big-text", bigText); localStorage.setItem("mm-big", bigText ? "1" : "0"); }, [bigText]);
+  const [bigText, setBigText] = useState(() => {
+    try { return localStorage.getItem("mm-big") === "1"; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    document.documentElement.classList.toggle("big-text", bigText);
+    try { localStorage.setItem("mm-big", bigText ? "1" : "0"); }
+    catch { /* The text size still applies for this visit. */ }
+  }, [bigText]);
   return [bigText, setBigText] as const;
 }
 
@@ -123,8 +126,14 @@ export default function SlowLifeApp() {
     if (lifeLessonMatch) return <LifeLessonPage key={lifeLessonMatch[1]} lessonKey={lifeLessonMatch[1]}/>;
     if (location.pathname === "/life/contacts") return <ContactsPage/>;
     if (location.pathname === "/chat") return <ChatPage/>;
-    const key = location.pathname.slice(1) as CategoryKey;
-    if (key in categories) return <CategoryPage category={key}/>;
+    if (location.pathname === "/fraud") return <FraudPage bigText={bigText} setBigText={setBigText}/>;
+    const healthView = /^\/health(?:\/(medication|readings|visit))?\/?$/.exec(location.pathname);
+    if (healthView) {
+      const view = (healthView[1] ?? "overview") as "overview" | "medication" | "readings" | "visit";
+      return <HealthPage key={view} view={view} bigText={bigText} setBigText={setBigText}/>;
+    }
+    const key = location.pathname.slice(1);
+    if (key === "wechat" || key === "life") return <CategoryPage category={key}/>;
     return <HomePage bigText={bigText} setBigText={setBigText}/>;
   }, [location.pathname, bigText]);
   return <main className="app-shell"><div className="paper-grain" aria-hidden="true"/>{content}</main>;
