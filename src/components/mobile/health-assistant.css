@@ -1,0 +1,24 @@
+.health-assistant-intro,
+.health-trend-analysis,
+.health-answer,
+.health-trend-reply { display: grid; gap: .64rem; }
+.health-assistant-intro > p,
+.health-answer-text { line-height: 1.65; }
+.health-answer-text { white-space: pre-line; }
+.health-trend-analysis > .care-primary { width: 100%; }
+.health-question-actions { display: flex; flex-wrap: wrap; gap: .44rem; }
+.health-question-actions .care-button { flex: 1 1 6rem; }
+.health-assistant-form button:disabled,
+.health-trend-analysis button:disabled { opacity: .72; }
+.health-prompt-buttons { display: grid; gap: .4rem; }
+.health-prompt-buttons > .care-button { justify-content: flex-start; text-align: start; background: var(--care-tint); }
+.health-answer-region > .care-status { margin: 0 0 .45rem; }
+.health-answer-question { color: var(--care-accent); font-weight: 700; }
+.health-answer[data-urgent="true"] { background: #fbefe5; border-color: #bb866c; }
+.health-emergency-call { background: #834933; border-color: #834933; color: white; }
+.health-range-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.6rem), 1fr)); gap: .45rem; margin: 0; }
+.health-range-list > div { min-width: 0; border: 1px solid var(--care-border); border-radius: .62rem; padding: .56rem; background: #f3f7ed; }
+.health-range-list dt { color: var(--care-accent); font-weight: 700; }
+.health-range-list dd { margin: .13rem 0 0; overflow-wrap: anywhere; }
+.health-range-list strong { font-size: 1.13rem; font-variant-numeric: tabular-nums; }
+.health-trend-reply { border-top: 1px solid var(--care-border); padding-top: .62rem; }

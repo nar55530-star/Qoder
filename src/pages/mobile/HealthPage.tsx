@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Activity, ArrowUpRight, ChevronRight, ClipboardList, Clock3, HeartPulse, Plus } from "lucide-react";
+import { Activity, ArrowUpRight, ChevronRight, ClipboardList, Clock3, HeartPulse, MessageCircle, Plus } from "lucide-react";
 import CarePage, { type CareTextProps } from "@/components/mobile/CarePage";
+import { HealthAssistant, HealthTrendAnalysis } from "@/components/mobile/HealthAssistant";
+import { HealthTrendChart } from "@/components/mobile/HealthTrendChart";
 import {
-  emptyHealthBook, localDay, medicationStatus, readHealthBook, readingValues,
+  emptyHealthBook, localDay, mealContextLabel, medicationStatus, readHealthBook, readingValues,
   recordTaken, saveMedicationPlan, undoTaken, updateHealthBook,
-  type HealthBook, type Medication, type Reading, type ReadingValues,
+  type HealthBook, type MealContext, type Medication, type Reading, type ReadingValues,
 } from "@/lib/health";
+import { summarizeHealthTrend } from "@/lib/health-trend-summary";
+import type { TrendSelection } from "@/lib/health-trends";
 
-type HealthView = "overview" | "medication" | "readings" | "visit";
+export type HealthView = "overview" | "medication" | "readings" | "visit" | "assistant";
 type SaveBook = (update: (book: HealthBook) => HealthBook, message: string) => Promise<boolean>;
 const calendarLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" });
 const dateTimeLabel = new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -64,7 +68,8 @@ function useToday() {
 
 const healthLinks = [
   { to: "/health/medication", title: "用药计划", description: "看时间、确认今天是否记录服用", Icon: Clock3 },
-  { to: "/health/readings", title: "身体情况", description: "记下血压、血糖和测量时间", Icon: Activity },
+  { to: "/health/readings", title: "身体情况", description: "记录血压、血糖，查看历史曲线", Icon: Activity },
+  { to: "/health/assistant", title: "小慢健康问答", description: "查用药常识，准备想问医生的问题", Icon: MessageCircle },
   { to: "/health/visit", title: "就诊准备", description: "整理想问医生的问题和要带的记录", Icon: ClipboardList },
 ] as const;
 
@@ -203,6 +208,7 @@ function MedicationPlans({ book, today, save }: { book: HealthBook; today: Date;
         )}</ul>}
     </details>
     <p className="care-note">到点响铃请用手机系统闹钟。未记录时，先核对实际服用情况。有补服或用量疑问请联系医生或药师。</p>
+    <Link className="care-button" to="/health/assistant"><MessageCircle size={19} aria-hidden="true"/>查用药常识</Link>
   </>;
 }
 
@@ -213,12 +219,15 @@ function localDateTimeInput(date: Date) {
 
 function HealthReadings({ book, save }: { book: HealthBook; save: SaveBook }) {
   const [kind, setKind] = useState<ReadingValues["kind"]>("pressure");
+  const [mealContext, setMealContext] = useState<MealContext>("unknown");
+  const [trendSelection, setTrendSelection] = useState<TrendSelection>({ kind: "pressure", window: "all" });
   const [first, setFirst] = useState("");
   const [second, setSecond] = useState("");
   const [measuredAt, setMeasuredAt] = useState(() => localDateTimeInput(new Date()));
   const [note, setNote] = useState("");
   const [formError, setFormError] = useState("");
   const sorted = [...book.readings].sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
+  const summary = summarizeHealthTrend(book.readings, trendSelection);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = readingValues(kind, first, second);
@@ -231,10 +240,12 @@ function HealthReadings({ book, save }: { book: HealthBook; save: SaveBook }) {
       setFormError("请填写已经测量的日期和时间。");
       return;
     }
-    const reading: Reading = { ...values, id: id(), measuredAt: date.toISOString(), note: note.trim() };
+    const details = { id: id(), measuredAt: date.toISOString(), note: note.trim() };
+    const reading: Reading = values.kind === "glucose" ? { ...values, ...details, mealContext } : { ...values, ...details };
     setFormError("");
     if (await save((current) => ({ ...current, readings: [reading, ...current.readings] }), "身体情况已保存。")) {
-      setFirst(""); setSecond(""); setNote(""); setMeasuredAt(localDateTimeInput(new Date()));
+      setFirst(""); setSecond(""); setNote(""); setMealContext("unknown"); setMeasuredAt(localDateTimeInput(new Date()));
+      setTrendSelection((selection) => ({ ...selection, kind: reading.kind, mealContext: reading.kind === "glucose" ? mealContext : selection.mealContext }));
     }
   }
   return <>
@@ -255,18 +266,25 @@ function HealthReadings({ book, save }: { book: HealthBook; save: SaveBook }) {
           <input type="number" min="1" step="1" inputMode="numeric" required value={second} onChange={(event) => setSecond(event.target.value)}/>
         </label>}
       </div>
+      {kind === "glucose" && <label>血糖测量时机
+        <select value={mealContext} onChange={(event) => setMealContext(event.target.value as MealContext)}>
+          {(Object.keys(mealContextLabel) as MealContext[]).map((value) => <option key={value} value={value}>{mealContextLabel[value]}</option>)}
+        </select>
+      </label>}
       <label>测量时间<input type="datetime-local" required value={measuredAt} onChange={(event) => setMeasuredAt(event.target.value)}/></label>
       <label>当时的情况（选填）<input value={note} maxLength={100} onChange={(event) => setNote(event.target.value)}/></label>
       {formError && <p className="care-error" role="alert">{formError}</p>}
       <button className="care-button care-primary" type="submit">保存测量记录</button>
     </form>
+    <HealthTrendChart readings={book.readings} selection={trendSelection} onSelectionChange={setTrendSelection}/>
+    {summary && <HealthTrendAnalysis key={JSON.stringify(summary)} summary={summary}/>}
     <section className="care-panel" aria-labelledby="readings-heading">
       <h2 id="readings-heading">我的测量记录</h2>
       {sorted.length === 0 ? <p className="care-empty">还没有血压或血糖记录。</p> :
         <ul className="care-records">{sorted.map((reading) => (
           <li className="care-record" key={reading.id}>
             <div className="care-record-heading">
-              <strong>{reading.kind === "pressure" ? "血压" : "血糖"}</strong>
+              <strong>{reading.kind === "pressure" ? "血压" : `血糖 · ${mealContextLabel[reading.mealContext ?? "unknown"]}`}</strong>
               <time dateTime={reading.measuredAt}>{dateTimeLabel.format(new Date(reading.measuredAt))}</time>
             </div>
             <p className="care-reading-value">{reading.kind === "pressure" ? `${reading.systolic} / ${reading.diastolic} mmHg` : `${reading.glucose} mmol/L`}</p>
@@ -304,6 +322,7 @@ const headings = {
   overview: ["健康管理", "把用药时间和身体情况记下来，需要时方便查看。"],
   medication: ["用药计划", "按医嘱记好时间，实际服用后再记录。"],
   readings: ["身体情况", "照着测量仪记下数字，就诊时可以给医生看。"],
+  assistant: ["小慢健康问答", "您可以查用药常识，也可以先把想问医生的话理一理。"],
   visit: ["就诊准备", "出门前，把想问的问题和要带的记录准备好。"],
 } as const;
 
@@ -317,6 +336,7 @@ export default function HealthPage({ view = "overview", ...textProps }: CareText
     {view === "overview" && <Overview book={book} today={today}/>}
     {view === "medication" && <MedicationPlans book={book} today={today} save={save}/>}
     {view === "readings" && <HealthReadings book={book} save={save}/>}
+    {view === "assistant" && <HealthAssistant/>}
     {view === "visit" && <PrepareVisit/>}
   </CarePage>;
 }

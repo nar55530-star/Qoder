@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { healthAiGateway } from "./server/health-ai.ts";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), healthAiGateway()],
   optimizeDeps: {
     include: ["lucide-react", "framer-motion", "recharts"],
   },

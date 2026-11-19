@@ -3,9 +3,11 @@ export type Intake = {
   planId: string; day: string; recordedAt: string; name: string;
   scheduledTime: string; instructions: string;
 };
+export type MealContext = "fasting" | "after-meal" | "unknown";
+export const mealContextLabel: Record<MealContext, string> = { fasting: "空腹", "after-meal": "餐后", unknown: "未注明" };
 export type ReadingValues =
   | { kind: "pressure"; systolic: number; diastolic: number }
-  | { kind: "glucose"; glucose: number };
+  | { kind: "glucose"; glucose: number; mealContext?: MealContext };
 export type Reading = ReadingValues & { id: string; measuredAt: string; note: string };
 export type HealthBook = { plans: Medication[]; intakes: Intake[]; readings: Reading[] };
 

@@ -1,0 +1,119 @@
+.health-trend {
+  display: grid;
+  gap: .72rem;
+}
+
+.health-trend-filter {
+  display: grid;
+  gap: .34rem;
+}
+
+.health-trend-filter-label {
+  color: var(--care-accent);
+  font-weight: 700;
+}
+
+.health-trend-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .42rem;
+}
+
+.health-trend-meals {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.health-trend-options .care-button {
+  min-width: 0;
+  padding-inline: .28rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.health-trend-options [aria-pressed="true"] {
+  border-color: var(--care-accent);
+  color: var(--white);
+  background: var(--care-accent);
+}
+
+.health-trend-count {
+  color: var(--care-accent);
+  font-weight: 700;
+}
+
+.health-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .75rem;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  font-weight: 700;
+}
+
+.health-trend-legend li {
+  display: flex;
+  align-items: center;
+  gap: .32rem;
+}
+
+.health-trend-line {
+  flex: none;
+  width: 1.25rem;
+  border-top: 3px solid #315f54;
+}
+
+.health-trend-line-low {
+  border-top-style: dashed;
+  border-color: #90613d;
+}
+
+.health-trend-unit {
+  color: #6d594c;
+  font-size: .87rem;
+  font-weight: 400;
+}
+
+.health-trend-graph {
+  min-width: 0;
+  height: 12.5rem;
+  border: 1px solid #ddccb0;
+  border-radius: .75rem;
+  background: #faf8ef;
+}
+
+.health-trend-graph .recharts-cartesian-axis-tick-value {
+  font-family: system-ui, sans-serif;
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-trend-graph .recharts-default-tooltip {
+  font-size: .88rem;
+}
+
+.health-trend-details {
+  padding-top: .16rem;
+  border-top: 1px dashed var(--care-border);
+}
+
+.health-trend-details summary {
+  padding: .65rem 0;
+}
+
+.health-trend-details time {
+  color: #6d594c;
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.health-trend-value {
+  color: var(--care-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 25rem) {
+  .health-trend-windows { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

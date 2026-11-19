@@ -7,7 +7,7 @@ import WechatLessonPage from "@/pages/mobile/WechatLessons";
 import LifeLessonPage from "@/pages/mobile/LifeLessons";
 import ContactsPage from "@/pages/mobile/ContactsPage";
 import FraudPage from "@/pages/mobile/FraudPage";
-import HealthPage from "@/pages/mobile/HealthPage";
+import HealthPage, { type HealthView } from "@/pages/mobile/HealthPage";
 
 type CategoryKey = "wechat" | "life";
 type Item = { label: string; desc: string; icon: ElementType; href?: string };
@@ -127,9 +127,9 @@ export default function SlowLifeApp() {
     if (location.pathname === "/life/contacts") return <ContactsPage/>;
     if (location.pathname === "/chat") return <ChatPage/>;
     if (location.pathname === "/fraud") return <FraudPage bigText={bigText} setBigText={setBigText}/>;
-    const healthView = /^\/health(?:\/(medication|readings|visit))?\/?$/.exec(location.pathname);
+    const healthView = /^\/health(?:\/(medication|readings|visit|assistant))?\/?$/.exec(location.pathname);
     if (healthView) {
-      const view = (healthView[1] ?? "overview") as "overview" | "medication" | "readings" | "visit";
+      const view = (healthView[1] ?? "overview") as HealthView;
       return <HealthPage key={view} view={view} bigText={bigText} setBigText={setBigText}/>;
     }
     const key = location.pathname.slice(1);
