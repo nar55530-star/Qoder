@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowDown, ArrowUpRight, Check, ChevronRight, Gift, HandCoins, KeyRound,
-  Link2, Phone, ScreenShare, ShieldAlert, Video, Volume2, VolumeX,
+  ArrowDown, ArrowUpRight, Check, ChevronRight, Gift, HandCoins, Headphones, KeyRound,
+  Link2, Phone, PiggyBank, ScreenShare, ShieldAlert, Video, Volume2, VolumeX,
 } from "lucide-react";
 import CarePage, { type CareTextProps } from "@/components/mobile/CarePage";
+import { FraudMessageCheck } from "@/components/mobile/FraudMessageCheck";
 
 const scenarios = [
   {
@@ -55,6 +56,37 @@ const scenarios = [
     wrong: "从短信链接提交付款",
     right: "自己打开官方服务核对账单",
   },
+  {
+    label: "客服说要取消扣费", Icon: Headphones,
+    prompt: "有人来电说您开通了付费服务，要加他好友才能取消。",
+    first: "先挂断，从原 App 查订阅。",
+    steps: ["自己打开原平台，查看订单或订阅状态。", "在原平台找官方客服核实，验证码和支付密码留在自己手机里。"],
+    wrong: "加对方好友，让他代办",
+    right: "挂断，自己查订单和订阅",
+  },
+  {
+    label: "养老投资说稳赚", Icon: PiggyBank,
+    prompt: "有人推销养老投资，承诺保本高收益，催您今天签字交钱。",
+    first: "先把宣传材料留下，再和家人商量。",
+    steps: ["先暂停交钱和签约。", "和家人一起从官方渠道核实机构和项目。"],
+    wrong: "为了赶优惠，先交一笔钱",
+    right: "先核实，再做决定",
+  },
+];
+
+const helpCases = [
+  {
+    label: "转了钱",
+    action: "尽快从银行或支付平台的官方入口询问止付或挂失。保存转账凭证、聊天记录和对方的收款信息。",
+  },
+  {
+    label: "给了验证码或密码",
+    action: "尽快通过银行或平台的官方渠道确认账户安全，按客服指引修改密码、冻结账户或挂失。保存相关短信和聊天记录。",
+  },
+  {
+    label: "开了屏幕共享",
+    action: "先结束共享并退出通话。如果设备仍被控制，先关闭网络，再用另一台可信设备联系银行和平台。",
+  },
 ];
 
 export default function FraudPage(textProps: CareTextProps) {
@@ -62,6 +94,7 @@ export default function FraudPage(textProps: CareTextProps) {
   const [choice, setChoice] = useState<"pause" | "continue" | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
+  const [helpCase, setHelpCase] = useState<number | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const helpHeading = useRef<HTMLHeadingElement>(null);
   const scenario = selected === null ? null : scenarios[selected];
@@ -99,6 +132,11 @@ export default function FraudPage(textProps: CareTextProps) {
     setSpeechStatus("正在朗读这条提醒。");
   }
 
+  function showHelp() {
+    helpHeading.current?.focus({ preventScroll: true });
+    helpHeading.current?.scrollIntoView({ block: "start" });
+  }
+
   return <CarePage {...textProps} title="防骗提醒" description="接到可疑消息或电话时，看看下一步怎么做。" tone="purple">
     <section className="care-summary fraud-summary" aria-labelledby="fraud-first">
       <div className="care-summary-heading">
@@ -109,12 +147,12 @@ export default function FraudPage(textProps: CareTextProps) {
         onClick={(event) => {
           if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
-          helpHeading.current?.focus({ preventScroll: true });
-          helpHeading.current?.scrollIntoView({ block: "start" });
+          showHelp();
         }}>
         已经转账或泄露信息 <ArrowDown size={17} aria-hidden="true"/>
       </a>
     </section>
+    <FraudMessageCheck onHelp={showHelp}/>
     <section aria-labelledby="scenarios-heading">
       <h2 className="care-section-title" id="scenarios-heading">您遇到了哪种情况？</h2>
       <div className="fraud-options">
@@ -164,17 +202,23 @@ export default function FraudPage(textProps: CareTextProps) {
     </section>}
     <section className="care-panel fraud-help" aria-labelledby="fraud-help">
       <h2 id="fraud-help" ref={helpHeading} tabIndex={-1}>已经转账或泄露信息</h2>
-      <ol className="care-steps">
-        <li><span>停止转账和联系对方，立即拨打 110 报警。</span></li>
-        <li><span>尽快联系银行或支付平台的官方客服，询问止付或挂失。留存聊天记录和转账凭证。</span></li>
-      </ol>
+      <p className="care-note">先停止转账和通话。怀疑被骗时，请尽快拨打 110 报警。</p>
       <div className="care-actions">
         <a className="care-button fraud-call" href="tel:110"><Phone size={19} aria-hidden="true"/>拨打 110 报警</a>
         <Link className="care-button" to="/life/contacts">联系家人</Link>
       </div>
+      <div className="fraud-next">
+        <h3 id="fraud-next-heading">已经做了哪一步？</h3>
+        <div className="care-actions" role="group" aria-labelledby="fraud-next-heading">
+          {helpCases.map(({ label }, index) => <button className="care-button" type="button" key={label}
+            aria-pressed={helpCase === index} onClick={() => setHelpCase(index)}>{label}</button>)}
+        </div>
+        <p className="fraud-next-action" aria-live="polite">{helpCase === null
+          ? "先保留短信、聊天和付款记录。发现已经扣款，请尽快联系银行或支付平台的官方客服。"
+          : helpCases[helpCase].action}</p>
+      </div>
     </section>
-    <p className="care-note">如果情况与上面的例子不同，可以先找家人或官方客服核实。</p>
-    <a className="care-text-button" href="https://app.www.gov.cn/govdata/gov/202407/25/517630/article.html"
-      target="_blank" rel="noreferrer">查看官方防骗提示 <ArrowUpRight size={16} aria-hidden="true"/></a>
+    <a className="care-text-button" href="https://www.zhengzhou.gov.cn/news4/9490918.jhtml"
+      target="_blank" rel="noreferrer">查看警方防骗提示 <ArrowUpRight size={16} aria-hidden="true"/></a>
   </CarePage>;
 }

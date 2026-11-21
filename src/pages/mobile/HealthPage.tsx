@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Activity, ArrowUpRight, ChevronRight, ClipboardList, Clock3, HeartPulse, MessageCircle, Plus } from "lucide-react";
+import { Activity, ChevronRight, ClipboardList, Clock3, HeartPulse, MessageCircle, Plus } from "lucide-react";
 import CarePage, { type CareTextProps } from "@/components/mobile/CarePage";
 import { HealthAssistant, HealthTrendAnalysis } from "@/components/mobile/HealthAssistant";
+import { HealthReadingForm } from "@/components/mobile/HealthReadingForm";
 import { HealthTrendChart } from "@/components/mobile/HealthTrendChart";
+import { HealthVisit } from "@/components/mobile/HealthVisit";
+import { MedicationReminder } from "@/components/mobile/MedicationReminder";
 import {
-  emptyHealthBook, localDay, mealContextLabel, medicationStatus, readHealthBook, readingValues,
-  recordTaken, saveMedicationPlan, undoTaken, updateHealthBook,
-  type HealthBook, type MealContext, type Medication, type Reading, type ReadingValues,
+  emptyHealthBook, localDay, medicationStatus, readHealthBook, readingLabel, readingValueLabel,
+  ReadingChangedError, recordTaken, removeReading, saveMedicationPlan, undoTaken, updateHealthBook,
+  type HealthBook, type Medication, type Reading, type SaveBook,
 } from "@/lib/health";
 import { summarizeHealthTrend } from "@/lib/health-trend-summary";
-import type { TrendSelection } from "@/lib/health-trends";
+import { selectRecentReadings, type TrendSelection } from "@/lib/health-trends";
+import { VisitNotesChangedError } from "@/lib/health-visit";
 
 export type HealthView = "overview" | "medication" | "readings" | "visit" | "assistant";
-type SaveBook = (update: (book: HealthBook) => HealthBook, message: string) => Promise<boolean>;
 const calendarLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" });
 const dateTimeLabel = new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const id = () => crypto.getRandomValues(new Uint32Array(4)).join("-");
@@ -35,18 +38,25 @@ function useHealthBook() {
   const save: SaveBook = async (update, message) => {
     if (pending.current) return false;
     pending.current = true;
+    setStatus("");
     try {
       setState({ book: await updateHealthBook(update), error: "" });
       setStatus(message);
       return true;
-    } catch {
-      setStatus("保存未成功，原有记录仍可保留。请检查浏览器存储后重试。");
+    } catch (error) {
+      if (error instanceof ReadingChangedError) {
+        setStatus("这条记录已经在另一个页面更新或删除。请先核对最新的测量记录。");
+      } else if (error instanceof VisitNotesChangedError) {
+        setStatus("另一个页面已经修改了这条笔记。本页草稿还在，可以先复制，再查看已保存的笔记。");
+      } else {
+        setStatus("保存未成功，原有记录仍可保留。请检查浏览器存储后重试。");
+      }
       return false;
     } finally {
       pending.current = false;
     }
   };
-  return { book, error, status, save };
+  return { book, error, status, save, clearStatus: () => setStatus("") };
 }
 
 function useToday() {
@@ -75,7 +85,9 @@ const healthLinks = [
 
 function Overview({ book, today }: { book: HealthBook; today: Date }) {
   const day = localDay(today);
-  const done = book.plans.filter((plan) => medicationStatus(book.intakes, plan.id, day)).length;
+  const pendingPlans = book.plans.filter((plan) => !medicationStatus(book.intakes, plan.id, day))
+    .sort((first, second) => first.time.localeCompare(second.time));
+  const done = book.plans.length - pendingPlans.length;
   const readings = book.readings.filter((reading) => localDay(new Date(reading.measuredAt)) === day).length;
   return <>
     <section className="care-summary" aria-labelledby="today-health">
@@ -87,6 +99,11 @@ function Overview({ book, today }: { book: HealthBook; today: Date }) {
         <div><strong>{done}<small> / {book.plans.length}</small></strong><span>已记录用药</span></div>
         <div><strong>{readings}<small> 条</small></strong><span>身体情况记录</span></div>
       </div>
+      {pendingPlans.length > 0 && <Link className="health-today-pending" to="/health/medication">
+        <Clock3 size={21} aria-hidden="true"/>
+        <span><strong>核对今日用药记录</strong><small>{pendingPlans[0].time} · {pendingPlans[0].name}{pendingPlans.length > 1 ? " 等 " + pendingPlans.length + " 项未记录" : " · 未记录"}</small></span>
+        <ChevronRight size={18} aria-hidden="true"/>
+      </Link>}
     </section>
     <nav className="care-menu" aria-label="健康管理功能">
       {healthLinks.map(({ to, title, description, Icon }) =>
@@ -191,6 +208,7 @@ function MedicationPlans({ book, today, save }: { book: HealthBook; today: Date;
         <button className="care-button" type="button" onClick={() => setFormOpen(false)}>取消</button>
       </div>
     </form>}
+    <MedicationReminder plans={plans}/>
     <details className="care-panel care-details">
       <summary>服用记录</summary>
       {book.intakes.length === 0 ? <p className="care-note">还没有服用记录。</p> :
@@ -207,114 +225,87 @@ function MedicationPlans({ book, today, save }: { book: HealthBook; today: Date;
           </li>,
         )}</ul>}
     </details>
-    <p className="care-note">到点响铃请用手机系统闹钟。未记录时，先核对实际服用情况。有补服或用量疑问请联系医生或药师。</p>
+    <p className="care-note">未记录时，先核对实际服用情况。有补服或用量疑问请联系医生或药师。</p>
     <Link className="care-button" to="/health/assistant"><MessageCircle size={19} aria-hidden="true"/>查用药常识</Link>
   </>;
 }
 
-function localDateTimeInput(date: Date) {
-  const time = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
-  return `${localDay(date)}T${time}`;
-}
-
-function HealthReadings({ book, save }: { book: HealthBook; save: SaveBook }) {
-  const [kind, setKind] = useState<ReadingValues["kind"]>("pressure");
-  const [mealContext, setMealContext] = useState<MealContext>("unknown");
-  const [trendSelection, setTrendSelection] = useState<TrendSelection>({ kind: "pressure", window: "all" });
-  const [first, setFirst] = useState("");
-  const [second, setSecond] = useState("");
-  const [measuredAt, setMeasuredAt] = useState(() => localDateTimeInput(new Date()));
-  const [note, setNote] = useState("");
-  const [formError, setFormError] = useState("");
-  const sorted = [...book.readings].sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
+function HealthReadings({ book, save, status, clearStatus }: {
+  book: HealthBook; save: SaveBook; status: string; clearStatus: () => void;
+}) {
+  const [editing, setEditing] = useState<Reading | null>(null);
+  const [statusArea, setStatusArea] = useState<"form" | "list">("form");
+  const [trendSelection, setTrendSelection] = useState<TrendSelection>(() => {
+    const latest = selectRecentReadings(book.readings, "all").at(-1);
+    return latest?.kind === "glucose"
+      ? { kind: "glucose", window: "all", mealContext: latest.mealContext ?? "unknown" }
+      : { kind: "pressure", window: "all" };
+  });
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  // Keep saved measurements visible for correction even when the device clock changes.
+  const sorted = [...book.readings].sort((first, second) =>
+    (Date.parse(second.measuredAt) || 0) - (Date.parse(first.measuredAt) || 0));
   const summary = summarizeHealthTrend(book.readings, trendSelection);
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const values = readingValues(kind, first, second);
-    if (!values) {
-      setFormError(kind === "pressure" ? "请核对血压。高压、低压填写正整数，高压应大于低压。" : "请按血糖仪显示填写大于 0 的数值。");
-      return;
-    }
-    const date = new Date(measuredAt);
-    if (!Number.isFinite(date.getTime()) || date > new Date()) {
-      setFormError("请填写已经测量的日期和时间。");
-      return;
-    }
-    const details = { id: id(), measuredAt: date.toISOString(), note: note.trim() };
-    const reading: Reading = values.kind === "glucose" ? { ...values, ...details, mealContext } : { ...values, ...details };
-    setFormError("");
-    if (await save((current) => ({ ...current, readings: [reading, ...current.readings] }), "身体情况已保存。")) {
-      setFirst(""); setSecond(""); setNote(""); setMealContext("unknown"); setMeasuredAt(localDateTimeInput(new Date()));
-      setTrendSelection((selection) => ({ ...selection, kind: reading.kind, mealContext: reading.kind === "glucose" ? mealContext : selection.mealContext }));
-    }
+
+  function showReading(reading: Reading) {
+    setTrendSelection((selection) => ({
+      ...selection, kind: reading.kind,
+      mealContext: reading.kind === "glucose" ? reading.mealContext ?? "unknown" : selection.mealContext,
+    }));
   }
+
+  function endEdit() {
+    if (!editing) return;
+    const editButtonId = "health-edit-" + editing.id;
+    setEditing(null);
+    setStatusArea("list");
+    requestAnimationFrame(() => (document.getElementById(editButtonId) ?? listHeading.current)?.focus());
+  }
+
+  async function confirmRemove(reading: Reading) {
+    if (!window.confirm("删除这条测量记录？")) return;
+    setStatusArea("list");
+    await save((current) => removeReading(current, reading), "已删除测量记录。");
+    listHeading.current?.focus();
+  }
+
   return <>
-    <form className="care-panel care-form" onSubmit={submit}>
-      <h2>新增测量记录</h2>
-      <label>记录类型
-        <select value={kind} onChange={(event) => {
-          setKind(event.target.value === "glucose" ? "glucose" : "pressure");
-          setFirst(""); setSecond(""); setFormError("");
-        }}><option value="pressure">血压</option><option value="glucose">血糖</option></select>
-      </label>
-      <div className={kind === "pressure" ? "care-input-pair" : undefined}>
-        <label>{kind === "pressure" ? "高压（mmHg）" : "血糖（mmol/L）"}
-          <input type="number" min={kind === "pressure" ? "1" : "0.01"} step={kind === "pressure" ? "1" : "any"}
-            inputMode={kind === "pressure" ? "numeric" : "decimal"} required value={first} onChange={(event) => setFirst(event.target.value)}/>
-        </label>
-        {kind === "pressure" && <label>低压（mmHg）
-          <input type="number" min="1" step="1" inputMode="numeric" required value={second} onChange={(event) => setSecond(event.target.value)}/>
-        </label>}
-      </div>
-      {kind === "glucose" && <label>血糖测量时机
-        <select value={mealContext} onChange={(event) => setMealContext(event.target.value as MealContext)}>
-          {(Object.keys(mealContextLabel) as MealContext[]).map((value) => <option key={value} value={value}>{mealContextLabel[value]}</option>)}
-        </select>
-      </label>}
-      <label>测量时间<input type="datetime-local" required value={measuredAt} onChange={(event) => setMeasuredAt(event.target.value)}/></label>
-      <label>当时的情况（选填）<input value={note} maxLength={100} onChange={(event) => setNote(event.target.value)}/></label>
-      {formError && <p className="care-error" role="alert">{formError}</p>}
-      <button className="care-button care-primary" type="submit">保存测量记录</button>
-    </form>
+    <p className="care-status health-record-status" role="status">{statusArea === "form" ? status : ""}</p>
+    <div hidden={editing !== null}>
+      <HealthReadingForm save={(update, message) => { setStatusArea("form"); return save(update, message); }} onSaved={showReading}/>
+    </div>
+    {editing && <HealthReadingForm key={editing.id} original={editing} save={save} onCancel={endEdit}
+      onSaved={(reading) => { showReading(reading); endEdit(); }}/>}
     <HealthTrendChart readings={book.readings} selection={trendSelection} onSelectionChange={setTrendSelection}/>
     {summary && <HealthTrendAnalysis key={JSON.stringify(summary)} summary={summary}/>}
     <section className="care-panel" aria-labelledby="readings-heading">
-      <h2 id="readings-heading">我的测量记录</h2>
+      <h2 id="readings-heading" ref={listHeading} tabIndex={-1}>我的测量记录</h2>
+      <p className="care-status health-record-status" role="status">{statusArea === "list" ? status : ""}</p>
       {sorted.length === 0 ? <p className="care-empty">还没有血压或血糖记录。</p> :
-        <ul className="care-records">{sorted.map((reading) => (
-          <li className="care-record" key={reading.id}>
+        <ul className="care-records">{sorted.map((reading) => {
+          const date = new Date(reading.measuredAt);
+          const hasDate = Number.isFinite(date.getTime());
+          const timestamp = hasDate ? dateTimeLabel.format(date) : "时间待核对";
+          return <li className="care-record" key={reading.id}>
             <div className="care-record-heading">
-              <strong>{reading.kind === "pressure" ? "血压" : `血糖 · ${mealContextLabel[reading.mealContext ?? "unknown"]}`}</strong>
-              <time dateTime={reading.measuredAt}>{dateTimeLabel.format(new Date(reading.measuredAt))}</time>
+              <strong>{readingLabel(reading)}</strong>
+              <time dateTime={hasDate ? reading.measuredAt : undefined}>{timestamp}</time>
             </div>
-            <p className="care-reading-value">{reading.kind === "pressure" ? `${reading.systolic} / ${reading.diastolic} mmHg` : `${reading.glucose} mmol/L`}</p>
+            <p className="care-reading-value">{readingValueLabel(reading)}</p>
             {reading.note && <p className="care-note">{reading.note}</p>}
-            <button className="care-text-button" type="button" onClick={() => {
-              if (window.confirm("删除这条测量记录？")) save((current) => ({ ...current, readings: current.readings.filter((item) => item.id !== reading.id) }), "已删除测量记录。");
-            }}>删除记录</button>
-          </li>
-        ))}</ul>}
+            <div className="care-actions">
+              <button className="care-button" type="button" id={"health-edit-" + reading.id}
+                aria-label={"修改记录 · " + readingLabel(reading) + " · " + timestamp}
+                disabled={editing !== null} onClick={() => {
+                  clearStatus(); setStatusArea("form"); setEditing(reading);
+                }}>修改记录</button>
+              <button className="care-text-button" type="button" disabled={editing !== null}
+                aria-label={"删除记录 · " + readingLabel(reading) + " · " + timestamp}
+                onClick={() => confirmRemove(reading)}>删除记录</button>
+            </div>
+          </li>;
+        })}</ul>}
     </section>
-  </>;
-}
-
-function PrepareVisit() {
-  return <>
-    <section className="care-panel" aria-labelledby="visit-heading">
-      <h2 id="visit-heading">去医院前准备三件事</h2>
-      <ol className="care-steps">
-        <li><strong>记下哪里不舒服</strong><span>从什么时候开始，后来有没有变化，有哪些事需要问医生。</span></li>
-        <li><strong>带上用药清单</strong><span>整理正在用的药品、用法，以及已知的药物过敏情况。必要时把药盒也带上。</span></li>
-        <li><strong>带上近期测量记录</strong><span>血压、血糖和测量时间可以一起给医生看。</span></li>
-      </ol>
-      <div className="care-actions">
-        <Link className="care-button" to="/health/medication">看用药计划</Link>
-        <Link className="care-button" to="/health/readings">看测量记录</Link>
-      </div>
-    </section>
-    <p className="care-note">用药和检查结果以医生判断为准。</p>
-    <a className="care-text-button" href="https://wjw.sz.gov.cn/gzdt/content/post_12887989.html"
-      target="_blank" rel="noreferrer">查看卫健部门用药指引 <ArrowUpRight size={16} aria-hidden="true"/></a>
   </>;
 }
 
@@ -327,16 +318,16 @@ const headings = {
 } as const;
 
 export default function HealthPage({ view = "overview", ...textProps }: CareTextProps & { view?: HealthView }) {
-  const { book, error, status, save } = useHealthBook();
+  const { book, error, status, save, clearStatus } = useHealthBook();
   const today = useToday();
   const [title, description] = headings[view];
   return <CarePage {...textProps} title={title} description={description} tone="teal" backTo={view === "overview" ? "/" : "/health"}>
     {error && <p className="care-error" role="alert">{error}</p>}
-    <p className="care-status" role="status">{status}</p>
+    {view === "medication" && <p className="care-status" role="status">{status}</p>}
     {view === "overview" && <Overview book={book} today={today}/>}
     {view === "medication" && <MedicationPlans book={book} today={today} save={save}/>}
-    {view === "readings" && <HealthReadings book={book} save={save}/>}
+    {view === "readings" && <HealthReadings book={book} save={save} status={status} clearStatus={clearStatus}/>}
     {view === "assistant" && <HealthAssistant/>}
-    {view === "visit" && <PrepareVisit/>}
+    {view === "visit" && <HealthVisit book={book} today={today} save={save} saveStatus={status} clearStatus={clearStatus}/>}
   </CarePage>;
 }

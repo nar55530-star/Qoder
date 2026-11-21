@@ -33,27 +33,33 @@ export function latestGlucoseMealContext(readings: Reading[], now = new Date()):
   return context;
 }
 
-export function selectTrendReadings(readings: Reading[], selection: TrendSelection, now = new Date()): Reading[] {
-  let earliest = -Infinity;
-  if (selection.window !== "all") {
-    const firstDay = new Date(now);
-    firstDay.setHours(0, 0, 0, 0);
-    earliest = firstDay.setDate(firstDay.getDate() - selection.window + 1);
-  }
+export function readingWindowStart(days: number, now: Date) {
+  const firstDay = new Date(now);
+  firstDay.setHours(0, 0, 0, 0);
+  firstDay.setDate(firstDay.getDate() - days + 1);
+  return firstDay;
+}
 
+export function selectRecentReadings(readings: Reading[], window: TrendWindow, now = new Date()): Reading[] {
+  const earliest = window === "all" ? -Infinity : readingWindowStart(window, now).getTime();
   const latest = now.getTime();
-  const mealContext = selection.mealContext ?? "unknown";
   return readings.flatMap((reading) => {
-    if (reading?.kind !== selection.kind) return [];
+    if (reading?.kind !== "pressure" && reading?.kind !== "glucose") return [];
     const timestamp = readingTime(reading);
     if (!Number.isFinite(timestamp) || timestamp < earliest || timestamp > latest) return [];
 
     if (reading.kind === "pressure") {
       const { systolic, diastolic } = reading;
       if (!Number.isInteger(systolic) || !Number.isInteger(diastolic) || diastolic <= 0 || systolic <= diastolic) return [];
-    } else if (glucoseContext(reading.mealContext) !== mealContext || !isGlucoseValue(reading.glucose)) {
+    } else if (!isGlucoseValue(reading.glucose)) {
       return [];
     }
     return [{ reading, timestamp }];
   }).sort((first, second) => first.timestamp - second.timestamp).map(({ reading }) => reading);
+}
+
+export function selectTrendReadings(readings: Reading[], selection: TrendSelection, now = new Date()): Reading[] {
+  const context = selection.mealContext ?? "unknown";
+  return selectRecentReadings(readings, selection.window, now).filter((reading) => reading.kind === selection.kind
+    && (reading.kind === "pressure" || glucoseContext(reading.mealContext) === context));
 }

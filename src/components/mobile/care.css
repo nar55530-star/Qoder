@@ -2,6 +2,7 @@
   --care-accent: #30564d;
   --care-tint: #dcebe3;
   --care-border: #afc8b9;
+  --care-reading-font: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
 }
 
 .care-page.tone-page-purple {
@@ -22,9 +23,10 @@
 .care-topline { display: flex; justify-content: space-between; align-items: center; gap: .6rem; margin-bottom: .92rem; }
 .care-topline .back-btn { min-width: 52px; min-height: 52px; }
 .care-topline .bigtext-btn { min-height: 52px; }
-.care-head .care-description { margin: .42rem 0 0; color: var(--ink); font-size: 1rem; line-height: 1.6; font-weight: 400; }
-.care-content { display: grid; gap: .86rem; padding: 1.05rem 1.1rem 1.4rem; }
+.care-head .care-description { margin: .42rem 0 0; color: var(--ink); font-size: 1rem; line-height: 1.6; font-family: var(--care-reading-font); font-weight: 400; }
+.care-content { display: grid; gap: .86rem; padding: 1.05rem 1.1rem 1.4rem; font-family: var(--care-reading-font); }
 .care-content :is(h2, h3, p) { margin: 0; }
+.care-content :is(h2, h3) { font-family: "LXGW WenKai Screen", "KaiTi", "STKaiti", var(--care-reading-font); }
 .care-content h2 { color: var(--care-accent); font-size: 1.28rem; line-height: 1.35; }
 .care-content h3 { color: var(--care-accent); font-size: 1.08rem; line-height: 1.35; }
 .care-content :is(p, li, strong, small, button, a) { overflow-wrap: anywhere; }
@@ -74,7 +76,7 @@
 .care-note { color: #6d594c; }
 .care-panel h2 + .care-note { margin-top: .38rem; }
 .care-status { color: var(--care-accent); }
-.care-status:empty { display: none; }
+.care-status:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .care-error, .fraud-feedback { padding: .55rem .65rem; border-radius: .62rem; color: #763d2c; background: #f7e7da; }
 .care-empty { margin: .62rem 0 !important; padding: .72rem; border: 1px dashed var(--care-border); border-radius: .6rem; color: #6d594c; }
 .care-records { padding: 0; margin: .6rem 0; list-style: none; }
@@ -95,6 +97,7 @@
 }
 .care-button > svg, .care-text-button > svg { flex-shrink: 0; }
 .care-primary, .fraud-call { background: var(--care-accent); border-color: var(--care-accent); color: var(--white); }
+.care-page button:disabled { opacity: .63; }
 .care-text-button { width: fit-content; padding-inline: .25rem; border: 0; background: transparent; text-decoration: underline; text-underline-offset: .17em; }
 .care-page :is(button, a, select, input, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--care-accent); outline-offset: 3px; }
 .care-details summary { min-height: 48px; cursor: pointer; font-weight: 800; color: var(--care-accent); }
@@ -113,7 +116,41 @@
 .care-steps span { display: block; }
 
 .care-content .care-section-title { margin-bottom: .6rem; }
+.health-today-pending {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .56rem;
+  margin-top: .62rem; min-height: 54px; padding: .58rem; border-radius: .64rem;
+  border: 1px solid var(--care-border); background: var(--white); color: var(--care-accent);
+}
+.health-today-pending small { display: block; line-height: 1.5; color: #6d594c; }
+.health-reading-form h2 { scroll-margin-top: 1rem; }
+.health-record-status:not(:empty) { padding: .55rem .65rem; border-radius: .6rem; background: var(--care-tint); }
+.care-panel .health-record-status:not(:empty) { margin-top: .4rem; }
+.health-reading-actions { margin-top: 0; }
+.health-reading-actions > .care-primary { flex: 1 1 auto; }
+.health-visit-summary { display: grid; gap: .7rem; }
+.health-visit-group, .health-visit-share { padding-top: .68rem; border-top: 1px dashed var(--care-border); }
+.health-visit-group > p, .health-visit-share > p { margin-top: .45rem; }
+.health-visit-period button[aria-pressed="true"] { background: var(--care-tint); border-color: var(--care-accent); }
+.health-visit-readings > summary { display: list-item; padding-block: .58rem; }
+.health-visit-status { color: var(--care-accent); line-height: 1.5; }
+.health-visit-status:not(:empty) { margin-block: .36rem; }
+.health-visit-copy textarea { resize: vertical; }
+.medication-reminders summary { padding-block: .35rem; }
+.medication-reminders summary svg { display: inline-block; vertical-align: -.22em; margin-inline: .22rem .36rem; }
+.medication-reminders > p, .medication-reminders > button { margin-top: .52rem; }
+.medication-reminder-times { font-weight: 800; color: var(--care-accent); font-variant-numeric: tabular-nums; }
 .fraud-summary .fraud-help-link { margin-top: .72rem; }
+.fraud-message { display: grid; gap: .72rem; }
+.fraud-message .fraud-message-actions { margin-top: 0; }
+.fraud-message-result, .fraud-next { border-top: 1px dashed var(--care-border); padding-top: .72rem; }
+.fraud-message-result h3 { scroll-margin-top: 1rem; }
+.fraud-message-result > .care-note { margin-top: .55rem; }
+.fraud-message-result .care-record { background: #f7f1fa; }
+.fraud-next { margin-top: .82rem; }
+.fraud-next button[aria-pressed="true"] { background: var(--care-tint); border-color: var(--care-accent); }
+.fraud-help .fraud-next-action {
+  line-height: 1.6; margin-top: .55rem; padding: .65rem; border-radius: .6rem; background: #faf0df;
+}
 .fraud-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 .fraud-option {
   min-width: 0; min-height: 100px; display: grid; grid-template-columns: minmax(0, 1fr) auto;

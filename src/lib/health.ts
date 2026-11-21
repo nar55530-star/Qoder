@@ -9,10 +9,13 @@ export type ReadingValues =
   | { kind: "pressure"; systolic: number; diastolic: number }
   | { kind: "glucose"; glucose: number; mealContext?: MealContext };
 export type Reading = ReadingValues & { id: string; measuredAt: string; note: string };
-export type HealthBook = { plans: Medication[]; intakes: Intake[]; readings: Reading[] };
+export type VisitNotes = { concerns: string; questions: string };
+export type HealthBook = { plans: Medication[]; intakes: Intake[]; readings: Reading[]; visitNotes?: VisitNotes };
+export type SaveBook = (update: (book: HealthBook) => HealthBook, message: string) => Promise<boolean>;
 
 const storageKey = "mm-health-v1";
 export const emptyHealthBook: HealthBook = { plans: [], intakes: [], readings: [] };
+export const emptyVisitNotes: VisitNotes = { concerns: "", questions: "" };
 
 export function readHealthBook(): HealthBook {
   const raw = window.localStorage.getItem(storageKey);
@@ -20,6 +23,9 @@ export function readHealthBook(): HealthBook {
   const book = JSON.parse(raw) as HealthBook;
   if (!book || !Array.isArray(book.plans) || !Array.isArray(book.intakes) || !Array.isArray(book.readings)) {
     throw new Error("Invalid health records");
+  }
+  if (book.visitNotes && (typeof book.visitNotes.concerns !== "string" || typeof book.visitNotes.questions !== "string")) {
+    return { ...book, visitNotes: undefined };
   }
   return book;
 }
@@ -79,4 +85,48 @@ export function readingValues(kind: ReadingValues["kind"], first: string, second
   return Number.isInteger(systolic) && Number.isInteger(diastolic) && diastolic > 0 && systolic > diastolic
     ? { kind, systolic, diastolic }
     : null;
+}
+
+export function readingLabel(reading: Reading) {
+  return reading.kind === "pressure" ? "血压" : "血糖（" + (mealContextLabel[reading.mealContext ?? "unknown"] ?? "未注明") + "）";
+}
+
+export function readingValueLabel(reading: Reading) {
+  return reading.kind === "pressure"
+    ? reading.systolic + " / " + reading.diastolic + " mmHg"
+    : reading.glucose + " mmol/L";
+}
+
+export class ReadingChangedError extends Error {
+  constructor() {
+    super("The previous reading changed");
+    this.name = "ReadingChangedError";
+  }
+}
+
+function sameReading(current: Reading, original: Reading): boolean {
+  if (current.measuredAt !== original.measuredAt || current.note !== original.note) return false;
+  if (current.kind === "pressure" && original.kind === "pressure") {
+    return current.systolic === original.systolic && current.diastolic === original.diastolic;
+  }
+  return current.kind === "glucose" && original.kind === "glucose" && current.glucose === original.glucose
+    && (current.mealContext ?? "unknown") === (original.mealContext ?? "unknown");
+}
+
+function requireCurrentReading(book: HealthBook, original: Reading): Reading {
+  const existing = book.readings.find(({ id }) => id === original.id);
+  if (!existing || !sameReading(existing, original)) throw new ReadingChangedError();
+  return existing;
+}
+
+export function saveReading(book: HealthBook, draft: Reading, original?: Reading): HealthBook {
+  if (!original) return { ...book, readings: [draft, ...book.readings] };
+  const existing = requireCurrentReading(book, original);
+  const replacement = { ...draft, id: existing.id };
+  return { ...book, readings: book.readings.map((reading) => reading.id === existing.id ? replacement : reading) };
+}
+
+export function removeReading(book: HealthBook, original: Reading): HealthBook {
+  const existing = requireCurrentReading(book, original);
+  return { ...book, readings: book.readings.filter((reading) => reading.id !== existing.id) };
 }
