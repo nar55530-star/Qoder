@@ -116,6 +116,8 @@
 .care-steps span { display: block; }
 
 .care-content .care-section-title { margin-bottom: .6rem; }
+.health-quick-record { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .52rem; }
+.health-quick-record .care-button { min-height: 62px; font-size: 1rem; }
 .health-today-pending {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .56rem;
   margin-top: .62rem; min-height: 54px; padding: .58rem; border-radius: .64rem;
@@ -123,6 +125,21 @@
 }
 .health-today-pending small { display: block; line-height: 1.5; color: #6d594c; }
 .health-reading-form h2 { scroll-margin-top: 1rem; }
+.health-reading-receipt { display: grid; gap: .42rem; }
+.health-reading-receipt h2 { scroll-margin-top: .7rem; }
+.health-reading-receipt > button { justify-self: start; }
+.health-meter {
+  display: grid; gap: .42rem; margin: 0; padding: .64rem; border: 1px solid var(--care-border);
+  border-radius: .68rem; background: #edf4ec;
+}
+.health-meter figcaption { color: var(--care-accent); font-weight: 700; }
+.health-meter-display { display: grid; gap: .25rem; padding: .35rem .58rem; border-radius: .43rem; background: #dcebe3; }
+.health-meter-display > div { display: grid; grid-template-columns: 3.2rem 1fr; gap: .42rem; align-items: center; }
+.health-meter-display b { font-family: ui-monospace, Consolas, monospace; color: var(--care-accent); }
+.health-meter-display span { font-weight: 700; }
+.health-reading-time { display: flex; align-items: center; flex-wrap: wrap; gap: .42rem .62rem; }
+.health-reading-time > label { flex: 1 1 12rem; }
+.health-reading-time strong { color: var(--care-accent); }
 .health-record-status:not(:empty) { padding: .55rem .65rem; border-radius: .6rem; background: var(--care-tint); }
 .care-panel .health-record-status:not(:empty) { margin-top: .4rem; }
 .health-reading-actions { margin-top: 0; }
@@ -135,11 +152,37 @@
 .health-visit-status { color: var(--care-accent); line-height: 1.5; }
 .health-visit-status:not(:empty) { margin-block: .36rem; }
 .health-visit-copy textarea { resize: vertical; }
+.doctor-view-link { min-height: 60px; font-size: 1rem; }
+.doctor-view { display: grid; gap: .85rem; }
+.doctor-view-group + .doctor-view-group { border-top: 1px dashed var(--care-border); padding-top: .75rem; }
+.doctor-view-group > h2 { margin-bottom: .4rem; }
+.doctor-view-note { white-space: pre-wrap; font-size: 1.12rem; line-height: 1.55; }
+.doctor-view .care-record strong { font-size: 1.05rem; }
+.doctor-view .care-reading-value { font-size: 1.4rem; }
 .medication-reminders summary { padding-block: .35rem; }
 .medication-reminders summary svg { display: inline-block; vertical-align: -.22em; margin-inline: .22rem .36rem; }
-.medication-reminders > p, .medication-reminders > button { margin-top: .52rem; }
+.medication-reminders details + details { border-top: 1px dashed var(--care-border); padding-top: .4rem; }
+.medication-reminders details > p, .medication-reminders details > button { margin-top: .52rem; }
 .medication-reminder-times { font-weight: 800; color: var(--care-accent); font-variant-numeric: tabular-nums; }
-.fraud-summary .fraud-help-link { margin-top: .72rem; }
+.medication-confirm-note { padding: .28rem .42rem; border-radius: .38rem; background: #faf0df; }
+.medication-alarm-steps { list-style: none; display: grid; gap: .46rem; margin: .56rem 0; padding: 0; }
+.medication-alarm-steps li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: .52rem;
+  padding: .52rem; border-radius: .54rem; background: var(--care-tint); font-size: .94rem; line-height: 1.55;
+}
+.medication-alarm-steps li svg { color: var(--care-accent); margin-top: .16rem; }
+.medication-alarm-steps li strong { display: block; color: var(--care-accent); }
+.medication-alarm-links { margin-bottom: .35rem; }
+.fraud-quick-actions { display: grid; gap: .43rem; margin-top: .68rem; }
+.fraud-quick-actions .care-button {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .5rem; text-align: start;
+  min-height: 56px; padding-inline: .65rem; font-size: .96rem;
+}
+.fraud-quick-actions .care-button[aria-pressed="true"] { background: var(--care-tint); border-color: var(--care-accent); }
+.fraud-quick-links { margin-top: .24rem; }
+.fraud-speech .care-status:not(:empty) { margin-top: .3rem; }
+.fraud-message-result .fraud-speech { margin-top: .46rem; }
+.fraud-first-actions { align-items: flex-start; }
 .fraud-message { display: grid; gap: .72rem; }
 .fraud-message .fraud-message-actions { margin-top: 0; }
 .fraud-message-result, .fraud-next { border-top: 1px dashed var(--care-border); padding-top: .72rem; }

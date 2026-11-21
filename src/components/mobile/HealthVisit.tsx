@@ -1,31 +1,83 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { ArrowUpRight, ClipboardList, Copy, Download } from "lucide-react";
+import { ArrowUpRight, ClipboardList, Copy, Download, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { downloadFile } from "@/lib/download";
-import { emptyVisitNotes, readingLabel, readingValueLabel, type HealthBook, type SaveBook, type VisitNotes } from "@/lib/health";
+import { emptyVisitNotes, readingLabel, readingValueLabel, type HealthBook, type Medication, type Reading, type SaveBook, type VisitNotes } from "@/lib/health";
 import { applyVisitNotesEdits, buildVisitSummary, formatVisitSummary, visitDateTime, type VisitNotesDraft, type VisitPeriod } from "@/lib/health-visit";
 
 const periods: VisitPeriod[] = [7, 30];
 
-export function HealthVisit({ book, today, save, saveStatus, clearStatus }: {
+function PlanList({ plans }: { plans: Medication[] }) {
+  return plans.length > 0
+    ? <ul className="care-records">{plans.map(({ id, time, name, instructions }) => <li className="care-record" key={id}>
+      <div className="care-record-heading"><strong>{name}</strong><time dateTime={time}>{time}</time></div>
+      {instructions && <p className="care-note">{instructions}</p>}
+    </li>)}</ul>
+    : <p className="care-note">还没有用药计划。</p>;
+}
+
+function MeasurementList({ readings }: { readings: Reading[] }) {
+  return <ul className="care-records">{readings.map((reading) => <li className="care-record" key={reading.id}>
+    <div className="care-record-heading"><strong>{readingLabel(reading)}</strong>
+      <time dateTime={reading.measuredAt}>{visitDateTime(reading.measuredAt)}</time></div>
+    <p className="care-reading-value">{readingValueLabel(reading)}</p>
+    {reading.note && <p className="care-note">{reading.note}</p>}
+  </li>)}</ul>;
+}
+
+function DoctorView({ summary, notes }: { summary: ReturnType<typeof buildVisitSummary>; notes: VisitNotes }) {
+  return <section className="care-panel doctor-view" aria-label="复诊展示">
+    {notes.questions.trim() && <div className="doctor-view-group">
+      <h2>想问医生的问题</h2>
+      <p className="doctor-view-note">{notes.questions}</p>
+    </div>}
+    {notes.concerns.trim() && <div className="doctor-view-group">
+      <h2>最近的情况</h2>
+      <p className="doctor-view-note">{notes.concerns}</p>
+    </div>}
+    <div className="doctor-view-group">
+      <h2>当前用药计划</h2>
+      <PlanList plans={summary.plans}/>
+    </div>
+    <div className="doctor-view-group">
+      <h2>近期家庭测量</h2>
+      <p className="care-note">{summary.from} 至 {summary.through} · {summary.readings.length} 条</p>
+      {summary.readings.length ? <MeasurementList readings={summary.readings.slice(0, 6)}/> : <p className="care-note">这段时间暂无测量记录。</p>}
+      {summary.readings.length > 6 && <details className="care-details health-visit-readings">
+        <summary>查看其余 {summary.readings.length - 6} 条测量</summary>
+        <MeasurementList readings={summary.readings.slice(6)}/>
+      </details>}
+    </div>
+  </section>;
+}
+
+export function HealthVisit({ book, today, save, saveStatus, clearStatus, showForDoctor, requestedPeriod }: {
   book: HealthBook; today: Date; save: SaveBook; saveStatus: string; clearStatus: () => void;
+  showForDoctor: boolean; requestedPeriod: VisitPeriod;
 }) {
-  const [period, setPeriod] = useState<VisitPeriod>(7);
+  const [period, setPeriod] = useState<VisitPeriod>(requestedPeriod);
   const [draft, setDraft] = useState<VisitNotesDraft>({});
   const [saving, setSaving] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [showCopyBox, setShowCopyBox] = useState(false);
   const copyBox = useRef<HTMLTextAreaElement>(null);
+  const doctorEntry = useRef<HTMLAnchorElement>(null);
+  const wasShowing = useRef(false);
   const savedNotes = { ...emptyVisitNotes, ...book.visitNotes };
   const notes = { concerns: draft.concerns?.value ?? savedNotes.concerns, questions: draft.questions?.value ?? savedNotes.questions };
   const hasDraft = Boolean(draft.concerns || draft.questions);
-  const summary = useMemo(() => buildVisitSummary(book, period, new Date()), [book, period, today]);
+  const summaryPeriod = showForDoctor ? requestedPeriod : period;
+  const summary = useMemo(() => buildVisitSummary(book, summaryPeriod, new Date()), [book, summaryPeriod, today]);
   const report = formatVisitSummary(summary, notes);
   const hasContent = Boolean(summary.plans.length || summary.readings.length || notes.concerns.trim() || notes.questions.trim());
 
   useEffect(() => {
     if (showCopyBox) { copyBox.current?.focus(); copyBox.current?.select(); }
   }, [showCopyBox]);
+  useEffect(() => {
+    if (wasShowing.current && !showForDoctor) doctorEntry.current?.focus();
+    wasShowing.current = showForDoctor;
+  }, [showForDoctor]);
 
   function editNote(field: keyof VisitNotes, value: string) {
     setDraft((previous) => ({ ...previous, [field]: { value, original: previous[field]?.original ?? savedNotes[field] } }));
@@ -60,7 +112,12 @@ export function HealthVisit({ book, today, save, saveStatus, clearStatus }: {
     setShareStatus("已请求保存文字文件。");
   }
 
+  if (showForDoctor) return <DoctorView summary={summary} notes={notes}/>;
+
   return <>
+    <Link ref={doctorEntry} className="care-button care-primary doctor-view-link" to={"/health/visit?mode=show&days=" + period}>
+      <Eye size={23} aria-hidden="true"/>给医生看
+    </Link>
     <form className="care-panel care-form" onSubmit={saveNotes}>
       <h2>先把想说的话记下来</h2>
       <label>最近的情况（选填）
@@ -91,12 +148,7 @@ export function HealthVisit({ book, today, save, saveStatus, clearStatus }: {
       <p className="care-note">清单根据本机记录和上方填写的内容生成。就诊时可打开给医生看。</p>
       <div className="health-visit-group">
         <h3>用药计划</h3>
-        {summary.plans.length > 0
-          ? <ul className="care-records">{summary.plans.map(({ id, time, name, instructions }) => <li className="care-record" key={id}>
-            <div className="care-record-heading"><strong>{name}</strong><time dateTime={time}>{time}</time></div>
-            {instructions && <p className="care-note">{instructions}</p>}
-          </li>)}</ul>
-          : <p className="care-note">还没有用药计划。</p>}
+        <PlanList plans={summary.plans}/>
         <p className="care-note">就诊时可以带上药盒和其他用药清单，告诉医生已知的药物过敏情况。</p>
         <Link className="care-text-button" to="/health/medication">看用药计划</Link>
       </div>
@@ -110,11 +162,7 @@ export function HealthVisit({ book, today, save, saveStatus, clearStatus }: {
         {summary.readings.length > 0
           ? <details className="care-details health-visit-readings">
             <summary>查看这段时间的测量</summary>
-            <ul className="care-records">{summary.readings.map((reading) => <li className="care-record" key={reading.id}>
-              <div className="care-record-heading"><strong>{readingLabel(reading)}</strong><time dateTime={reading.measuredAt}>{visitDateTime(reading.measuredAt)}</time></div>
-              <p className="care-reading-value">{readingValueLabel(reading)}</p>
-              {reading.note && <p className="care-note">{reading.note}</p>}
-            </li>)}</ul>
+            <MeasurementList readings={summary.readings}/>
           </details>
           : <Link className="care-text-button" to="/health/readings">去记一次测量</Link>}
       </div>

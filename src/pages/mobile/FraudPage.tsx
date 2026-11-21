@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowDown, ArrowUpRight, Check, ChevronRight, Gift, HandCoins, Headphones, KeyRound,
-  Link2, Phone, PiggyBank, ScreenShare, ShieldAlert, Video, Volume2, VolumeX,
+  Link2, Phone, PiggyBank, ScreenShare, ShieldAlert, Video,
 } from "lucide-react";
 import CarePage, { type CareTextProps } from "@/components/mobile/CarePage";
 import { FraudMessageCheck } from "@/components/mobile/FraudMessageCheck";
+import { FraudSpeechControls, useFraudSpeech } from "@/components/mobile/FraudSpeech";
 
 const scenarios = [
   {
+    id: "transfer",
     label: "有人让我转账", Icon: HandCoins,
     prompt: "对方催您把钱转到所谓的「安全账户」。",
     first: "先别转钱，挂断电话。",
@@ -17,6 +19,7 @@ const scenarios = [
     right: "挂断后，自己找官方电话核实",
   },
   {
+    id: "code",
     label: "有人要验证码", Icon: KeyRound,
     prompt: "有人自称客服，说要验证码才能取消扣费。",
     first: "把验证码留在自己手机上。",
@@ -25,6 +28,7 @@ const scenarios = [
     right: "打开原平台找官方客服",
   },
   {
+    id: "screen",
     label: "让我共享屏幕", Icon: ScreenShare,
     prompt: "对方要您共享手机屏幕，再打开手机银行。",
     first: "拒绝共享。已经开启时，先结束共享。",
@@ -33,6 +37,7 @@ const scenarios = [
     right: "结束共享，退出通话",
   },
   {
+    id: "family",
     label: "熟人在视频里借钱", Icon: Video,
     prompt: "视频里的人长得像朋友，说突然遇到事，要立刻借钱。",
     first: "先放下转账操作，换个渠道联系本人。",
@@ -41,6 +46,7 @@ const scenarios = [
     right: "用之前存过的号码打回去",
   },
   {
+    id: "reward",
     label: "领红包要先交钱", Icon: Gift,
     prompt: "有人说要先交一笔钱，才能领取红包或领奖。",
     first: "先退出页面，保留消息。",
@@ -49,6 +55,7 @@ const scenarios = [
     right: "退出页面，从官方入口查活动",
   },
   {
+    id: "link",
     label: "陌生链接催我缴费", Icon: Link2,
     prompt: "短信附了一个缴费链接，说现在不付就会停服务。",
     first: "先放下短信，自己打开原来的服务入口。",
@@ -57,6 +64,7 @@ const scenarios = [
     right: "自己打开官方服务核对账单",
   },
   {
+    id: "refund",
     label: "客服说要取消扣费", Icon: Headphones,
     prompt: "有人来电说您开通了付费服务，要加他好友才能取消。",
     first: "先挂断，从原 App 查订阅。",
@@ -65,6 +73,7 @@ const scenarios = [
     right: "挂断，自己查订单和订阅",
   },
   {
+    id: "investment",
     label: "养老投资说稳赚", Icon: PiggyBank,
     prompt: "有人推销养老投资，承诺保本高收益，催您今天签字交钱。",
     first: "先把宣传材料留下，再和家人商量。",
@@ -72,7 +81,9 @@ const scenarios = [
     wrong: "为了赶优惠，先交一笔钱",
     right: "先核实，再做决定",
   },
-];
+] as const;
+
+type ScenarioId = typeof scenarios[number]["id"];
 
 const helpCases = [
   {
@@ -90,49 +101,34 @@ const helpCases = [
 ];
 
 export default function FraudPage(textProps: CareTextProps) {
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<ScenarioId | null>(null);
   const [choice, setChoice] = useState<"pause" | "continue" | null>(null);
-  const [speaking, setSpeaking] = useState(false);
-  const [speechStatus, setSpeechStatus] = useState("");
+  const { playback, stop, toggle } = useFraudSpeech();
   const [helpCase, setHelpCase] = useState<number | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const helpHeading = useRef<HTMLHeadingElement>(null);
-  const scenario = selected === null ? null : scenarios[selected];
+  const scenario = scenarios.find(({ id }) => id === selected);
 
-  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
+
   useEffect(() => {
     if (selected === null) return;
     resultHeading.current?.focus({ preventScroll: true });
     resultHeading.current?.scrollIntoView({ block: "start" });
   }, [selected]);
 
-  function readScenario() {
-    const speech = window.speechSynthesis;
-    if (!speech || !window.SpeechSynthesisUtterance || !scenario) {
-      setSpeechStatus("此浏览器暂时无法朗读，可以直接看下面的步骤。");
+  function chooseScenario(id: ScenarioId) {
+    stop();
+    if (selected === id) {
+      resultHeading.current?.focus({ preventScroll: true });
+      resultHeading.current?.scrollIntoView({ block: "start" });
       return;
     }
-    if (speaking) {
-      speech.cancel();
-      setSpeaking(false);
-      setSpeechStatus("已停止朗读。");
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance([scenario.first, ...scenario.steps].join(""));
-    utterance.lang = "zh-CN";
-    utterance.rate = 0.83;
-    utterance.onend = () => { setSpeaking(false); setSpeechStatus("已读完。"); };
-    utterance.onerror = ({ error }) => {
-      if (error === "canceled" || error === "interrupted") return;
-      setSpeaking(false);
-      setSpeechStatus("暂时无法朗读，可以继续看文字。");
-    };
-    speech.speak(utterance);
-    setSpeaking(true);
-    setSpeechStatus("正在朗读这条提醒。");
+    setChoice(null);
+    setSelected(id);
   }
 
   function showHelp() {
+    stop();
     helpHeading.current?.focus({ preventScroll: true });
     helpHeading.current?.scrollIntoView({ block: "start" });
   }
@@ -143,37 +139,25 @@ export default function FraudPage(textProps: CareTextProps) {
         <span className="care-emblem"><ShieldAlert size={28} aria-hidden="true"/></span>
         <div><h2 id="fraud-first">拿不准，先别操作</h2><p>暂停转账、提供验证码和共享屏幕，再自行核实。</p></div>
       </div>
-      <a href="#fraud-help" className="care-button fraud-help-link"
-        onClick={(event) => {
+      <div className="fraud-quick-actions" role="group" aria-label="遇事先做">
+        <button type="button" className="care-button" aria-pressed={selected === "transfer"} onClick={() => chooseScenario("transfer")}>
+          <HandCoins size={21} aria-hidden="true"/>有人催我转钱<ChevronRight size={17} aria-hidden="true"/>
+        </button>
+        <button type="button" className="care-button" aria-pressed={selected === "code"} onClick={() => chooseScenario("code")}>
+          <KeyRound size={21} aria-hidden="true"/>有人要我报验证码<ChevronRight size={17} aria-hidden="true"/>
+        </button>
+        <button type="button" className="care-button fraud-call" onClick={() => { setHelpCase(0); showHelp(); }}>
+          <Phone size={21} aria-hidden="true"/>我已经转钱了<ChevronRight size={17} aria-hidden="true"/>
+        </button>
+      </div>
+      <div className="care-actions fraud-quick-links">
+        <Link className="care-text-button" to="/life/contacts">打给家人</Link>
+        <a href="#fraud-help" className="care-text-button" onClick={(event) => {
           if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
+          setHelpCase(null);
           showHelp();
-        }}>
-        已经转账或泄露信息 <ArrowDown size={17} aria-hidden="true"/>
-      </a>
-    </section>
-    <FraudMessageCheck onHelp={showHelp}/>
-    <section aria-labelledby="scenarios-heading">
-      <h2 className="care-section-title" id="scenarios-heading">您遇到了哪种情况？</h2>
-      <div className="fraud-options">
-        {scenarios.map(({ label, Icon }, index) => (
-          <button type="button" className="fraud-option" key={label} aria-pressed={selected === index}
-            onClick={() => {
-              if (selected === index) {
-                resultHeading.current?.focus({ preventScroll: true });
-                resultHeading.current?.scrollIntoView({ block: "start" });
-                return;
-              }
-              window.speechSynthesis?.cancel();
-              setSpeaking(false);
-              setSpeechStatus("");
-              setChoice(null);
-              setSelected(index);
-            }}>
-            <span className="care-emblem"><Icon size={23} aria-hidden="true"/></span>
-            <span>{label}</span><ChevronRight size={16} aria-hidden="true"/>
-          </button>
-        ))}
+        }}>已经转账或泄露信息<ArrowDown size={17} aria-hidden="true"/></a>
       </div>
     </section>
     {scenario && <section className="care-panel fraud-result" aria-labelledby="scenario-result">
@@ -182,11 +166,11 @@ export default function FraudPage(textProps: CareTextProps) {
       <ol className="care-steps">
         {scenario.steps.map((step) => <li key={step}><span>{step}</span></li>)}
       </ol>
-      <button className="care-button" type="button" onClick={readScenario}>
-        {speaking ? <VolumeX size={20} aria-hidden="true"/> : <Volume2 size={20} aria-hidden="true"/>}
-        {speaking ? "停止朗读" : "听一遍"}
-      </button>
-      <p className="care-status" role="status">{speechStatus}</p>
+      <div className="care-actions fraud-first-actions">
+        <FraudSpeechControls playback={playback?.target === "scenario" ? playback : undefined}
+          onRead={() => toggle("scenario", [scenario.first, ...scenario.steps].join(" "))}/>
+        <Link className="care-button" to="/life/contacts">找家人商量</Link>
+      </div>
       <div className="fraud-practice">
         <h3>模拟练习</h3>
         <p>{scenario.prompt} 您会怎么做？</p>
@@ -200,6 +184,20 @@ export default function FraudPage(textProps: CareTextProps) {
         </p>}
       </div>
     </section>}
+    <FraudMessageCheck onHelp={() => { setHelpCase(null); showHelp(); }}
+      playback={playback?.target === "check" ? playback : undefined}
+      onRead={(text, generalAdvice) => toggle("check", text, generalAdvice)} onReset={stop}/>
+    <section aria-labelledby="scenarios-heading">
+      <h2 className="care-section-title" id="scenarios-heading">更多防骗练习</h2>
+      <div className="fraud-options">
+        {scenarios.map(({ id, label, Icon }) => (
+          <button type="button" className="fraud-option" key={id} aria-pressed={selected === id} onClick={() => chooseScenario(id)}>
+            <span className="care-emblem"><Icon size={23} aria-hidden="true"/></span>
+            <span>{label}</span><ChevronRight size={16} aria-hidden="true"/>
+          </button>
+        ))}
+      </div>
+    </section>
     <section className="care-panel fraud-help" aria-labelledby="fraud-help">
       <h2 id="fraud-help" ref={helpHeading} tabIndex={-1}>已经转账或泄露信息</h2>
       <p className="care-note">先停止转账和通话。怀疑被骗时，请尽快拨打 110 报警。</p>

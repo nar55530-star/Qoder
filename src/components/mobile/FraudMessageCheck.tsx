@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 import { ArrowDown, SearchCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { checkFraudMessage, fraudSignalAdvice, type FraudSignal } from "@/lib/fraud-check";
+import { FraudSpeechControls } from "@/components/mobile/FraudSpeech";
 
 const example = "有人自称客服，说取消扣费要开屏幕共享，还让我把验证码发给他。";
 const maxMessageLength = 500;
+const checkWithSomeone = "涉及钱款、验证码或个人信息时，请用原来的号码找本人核实，或自己打开原平台的官方客服入口。";
 
-export function FraudMessageCheck({ onHelp }: { onHelp: () => void }) {
+export function FraudMessageCheck({ onHelp, onRead, onReset, playback }: {
+  onHelp: () => void;
+  onRead: (text: string, generalAdvice: string) => void;
+  onReset: () => void;
+  playback: ComponentProps<typeof FraudSpeechControls>["playback"];
+}) {
   const [text, setText] = useState("");
   const [matches, setMatches] = useState<FraudSignal[] | null>(null);
   const [error, setError] = useState("");
@@ -18,6 +25,7 @@ export function FraudMessageCheck({ onHelp }: { onHelp: () => void }) {
   }, [matches]);
 
   function changeText(value: string) {
+    onReset();
     setText(value);
     setMatches(null);
     setError("");
@@ -25,6 +33,7 @@ export function FraudMessageCheck({ onHelp }: { onHelp: () => void }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    onReset();
     const message = text.trim();
     if (!message) {
       setError("请先粘贴消息，或用自己的话写下对方让您做什么。");
@@ -47,6 +56,7 @@ export function FraudMessageCheck({ onHelp }: { onHelp: () => void }) {
             const selected = event.currentTarget.selectionEnd - event.currentTarget.selectionStart;
             if (text.length - selected + event.clipboardData.getData("text").length <= maxMessageLength) return;
             event.preventDefault();
+            onReset();
             setMatches(null);
             setError("这段文字太长，请分段粘贴，先查对方让您操作的那一段。");
           }}
@@ -61,18 +71,22 @@ export function FraudMessageCheck({ onHelp }: { onHelp: () => void }) {
       </div>
     </form>
     {matches && <div className="fraud-message-result">
-      <h3 ref={result} tabIndex={-1}>{matches.length ? "先停下来，核实这几处" : "暂未发现常见线索"}</h3>
+      <h3 ref={result} tabIndex={-1}>{matches.length ? "先停下来，核实这几处" : "请先核实消息来源"}</h3>
       {matches.length > 0 && <ul className="care-records">
         {matches.map((id) => <li className="care-record" key={id}>
           <strong>{fraudSignalAdvice[id].label}</strong>
           <p className="care-note">{fraudSignalAdvice[id].action}</p>
         </li>)}
       </ul>}
-      <p className="care-note">快查只识别常见字眼。涉及付款、验证码或个人信息时，请自行联系本人或官方客服核实。</p>
+      <p className="care-note">快查只识别常见字眼。{checkWithSomeone}</p>
       <div className="care-actions">
         <Link className="care-button" to="/life/contacts">找家人核实</Link>
         <button className="care-text-button" type="button" onClick={onHelp}>已经操作，查看求助步骤 <ArrowDown size={17} aria-hidden="true"/></button>
       </div>
+      <FraudSpeechControls playback={playback} onRead={() => onRead([
+        ...matches.map((id) => fraudSignalAdvice[id].action),
+        checkWithSomeone,
+      ].join(" "), checkWithSomeone)}/>
     </div>}
   </section>;
 }

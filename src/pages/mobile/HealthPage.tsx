@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { Activity, ChevronRight, ClipboardList, Clock3, HeartPulse, MessageCircle, Plus } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Activity, Check, ChevronRight, ClipboardList, Clock3, Droplet, HeartPulse, MessageCircle, Plus } from "lucide-react";
 import CarePage, { type CareTextProps } from "@/components/mobile/CarePage";
 import { HealthAssistant, HealthTrendAnalysis } from "@/components/mobile/HealthAssistant";
 import { HealthReadingForm } from "@/components/mobile/HealthReadingForm";
@@ -13,7 +13,7 @@ import {
   type HealthBook, type Medication, type Reading, type SaveBook,
 } from "@/lib/health";
 import { summarizeHealthTrend } from "@/lib/health-trend-summary";
-import { selectRecentReadings, type TrendSelection } from "@/lib/health-trends";
+import { latestGlucoseMealContext, selectRecentReadings, type TrendSelection } from "@/lib/health-trends";
 import { VisitNotesChangedError } from "@/lib/health-visit";
 
 export type HealthView = "overview" | "medication" | "readings" | "visit" | "assistant";
@@ -90,6 +90,10 @@ function Overview({ book, today }: { book: HealthBook; today: Date }) {
   const done = book.plans.length - pendingPlans.length;
   const readings = book.readings.filter((reading) => localDay(new Date(reading.measuredAt)) === day).length;
   return <>
+    <nav className="health-quick-record" aria-label="快速记测量">
+      <Link className="care-button care-primary" to="/health/readings?kind=pressure"><Activity size={23} aria-hidden="true"/>记血压</Link>
+      <Link className="care-button care-primary" to="/health/readings?kind=glucose"><Droplet size={23} aria-hidden="true"/>记血糖</Link>
+    </nav>
     <section className="care-summary" aria-labelledby="today-health">
       <div className="care-summary-heading">
         <span className="care-emblem"><HeartPulse size={27} aria-hidden="true"/></span>
@@ -171,16 +175,19 @@ function MedicationPlans({ book, today, save }: { book: HealthBook; today: Date;
       <ul className="care-records">
         {plans.map((plan) => {
           const taken = medicationStatus(book.intakes, plan.id, day);
+          const guidanceId = "check-medication-" + plan.id;
           return <li className="care-record" key={plan.id}>
             <div className="care-record-heading">
               <time dateTime={plan.time}>{plan.time}</time>
               <span className="care-state" data-done={Boolean(taken)}>{taken ? "已记录服用" : "未记录"}</span>
             </div>
             <strong>{plan.name}</strong>
+            {!taken && <p className="care-note medication-confirm-note" id={guidanceId}>请先核对是否已经服用。</p>}
             {plan.instructions && <p className="care-note">{plan.instructions}</p>}
             {taken && <p className="care-note">记录于 {dateTimeLabel.format(new Date(taken.recordedAt))}</p>}
             <div className="care-actions">
               <button type="button" className={taken ? "care-button" : "care-button care-primary"}
+                aria-describedby={taken ? undefined : guidanceId}
                 onClick={() => toggleDone(plan.id, Boolean(taken))}>{taken ? "撤销记录" : "记录已服用"}</button>
               <button type="button" className="care-text-button" onClick={() => openForm(plan)}>编辑</button>
               <button type="button" className="care-text-button" aria-label={`删除${plan.name}的计划`} onClick={async () => {
@@ -230,36 +237,59 @@ function MedicationPlans({ book, today, save }: { book: HealthBook; today: Date;
   </>;
 }
 
-function HealthReadings({ book, save, status, clearStatus }: {
-  book: HealthBook; save: SaveBook; status: string; clearStatus: () => void;
+function HealthReadings({ book, save, status, clearStatus, initialKind }: {
+  book: HealthBook; save: SaveBook; status: string; clearStatus: () => void; initialKind?: Reading["kind"];
 }) {
   const [editing, setEditing] = useState<Reading | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [editFrom, setEditFrom] = useState<"list" | "receipt">("list");
   const [statusArea, setStatusArea] = useState<"form" | "list">("form");
   const [trendSelection, setTrendSelection] = useState<TrendSelection>(() => {
+    if (initialKind) return {
+      kind: initialKind, window: "all",
+      mealContext: initialKind === "glucose" ? latestGlucoseMealContext(book.readings) : undefined,
+    };
     const latest = selectRecentReadings(book.readings, "all").at(-1);
     return latest?.kind === "glucose"
       ? { kind: "glucose", window: "all", mealContext: latest.mealContext ?? "unknown" }
       : { kind: "pressure", window: "all" };
   });
   const listHeading = useRef<HTMLHeadingElement>(null);
+  const receiptHeading = useRef<HTMLHeadingElement>(null);
+  const receiptEdit = useRef<HTMLButtonElement>(null);
+  const savedReading = savedId ? book.readings.find(({ id }) => id === savedId) : undefined;
   // Keep saved measurements visible for correction even when the device clock changes.
   const sorted = [...book.readings].sort((first, second) =>
     (Date.parse(second.measuredAt) || 0) - (Date.parse(first.measuredAt) || 0));
   const summary = summarizeHealthTrend(book.readings, trendSelection);
 
   function showReading(reading: Reading) {
+    setSavedId(reading.id);
+    setEditing(null);
+    setStatusArea("form");
     setTrendSelection((selection) => ({
       ...selection, kind: reading.kind,
       mealContext: reading.kind === "glucose" ? reading.mealContext ?? "unknown" : selection.mealContext,
     }));
+    requestAnimationFrame(() => receiptHeading.current?.focus());
+  }
+
+  function startEdit(reading: Reading, source: "list" | "receipt") {
+    clearStatus();
+    setStatusArea("form");
+    setEditFrom(source);
+    setEditing(reading);
   }
 
   function endEdit() {
     if (!editing) return;
     const editButtonId = "health-edit-" + editing.id;
     setEditing(null);
-    setStatusArea("list");
-    requestAnimationFrame(() => (document.getElementById(editButtonId) ?? listHeading.current)?.focus());
+    setStatusArea(editFrom === "list" ? "list" : "form");
+    requestAnimationFrame(() => {
+      const destination = editFrom === "receipt" ? receiptEdit.current : document.getElementById(editButtonId);
+      (destination ?? listHeading.current)?.focus();
+    });
   }
 
   async function confirmRemove(reading: Reading) {
@@ -271,11 +301,22 @@ function HealthReadings({ book, save, status, clearStatus }: {
 
   return <>
     <p className="care-status health-record-status" role="status">{statusArea === "form" ? status : ""}</p>
+    {savedReading && !editing && <section className="care-summary health-reading-receipt" aria-labelledby="health-reading-receipt">
+      <div className="care-summary-heading">
+        <span className="care-emblem"><Check size={23} aria-hidden="true"/></span>
+        <h2 id="health-reading-receipt" tabIndex={-1} ref={receiptHeading}>已保存这次测量</h2>
+      </div>
+      <p className="care-reading-value">{readingValueLabel(savedReading)}</p>
+      <p className="care-note">{readingLabel(savedReading)} · <time dateTime={savedReading.measuredAt}>
+        {dateTimeLabel.format(new Date(savedReading.measuredAt))}
+      </time></p>
+      <button ref={receiptEdit} className="care-button" type="button" onClick={() => startEdit(savedReading, "receipt")}>改错</button>
+    </section>}
     <div hidden={editing !== null}>
-      <HealthReadingForm save={(update, message) => { setStatusArea("form"); return save(update, message); }} onSaved={showReading}/>
+      <HealthReadingForm initialKind={initialKind}
+        save={(update, message) => { setStatusArea("form"); return save(update, message); }} onSaved={showReading}/>
     </div>
-    {editing && <HealthReadingForm key={editing.id} original={editing} save={save} onCancel={endEdit}
-      onSaved={(reading) => { showReading(reading); endEdit(); }}/>}
+    {editing && <HealthReadingForm key={editing.id} original={editing} save={save} onCancel={endEdit} onSaved={showReading}/>}
     <HealthTrendChart readings={book.readings} selection={trendSelection} onSelectionChange={setTrendSelection}/>
     {summary && <HealthTrendAnalysis key={JSON.stringify(summary)} summary={summary}/>}
     <section className="care-panel" aria-labelledby="readings-heading">
@@ -296,9 +337,7 @@ function HealthReadings({ book, save, status, clearStatus }: {
             <div className="care-actions">
               <button className="care-button" type="button" id={"health-edit-" + reading.id}
                 aria-label={"修改记录 · " + readingLabel(reading) + " · " + timestamp}
-                disabled={editing !== null} onClick={() => {
-                  clearStatus(); setStatusArea("form"); setEditing(reading);
-                }}>修改记录</button>
+                disabled={editing !== null} onClick={() => startEdit(reading, "list")}>修改记录</button>
               <button className="care-text-button" type="button" disabled={editing !== null}
                 aria-label={"删除记录 · " + readingLabel(reading) + " · " + timestamp}
                 onClick={() => confirmRemove(reading)}>删除记录</button>
@@ -320,14 +359,23 @@ const headings = {
 export default function HealthPage({ view = "overview", ...textProps }: CareTextProps & { view?: HealthView }) {
   const { book, error, status, save, clearStatus } = useHealthBook();
   const today = useToday();
-  const [title, description] = headings[view];
-  return <CarePage {...textProps} title={title} description={description} tone="teal" backTo={view === "overview" ? "/" : "/health"}>
+  const [params] = useSearchParams();
+  const requestedKind = params.get("kind");
+  const initialKind = requestedKind === "pressure" || requestedKind === "glucose" ? requestedKind : undefined;
+  const showForDoctor = view === "visit" && params.get("mode") === "show";
+  const visitPeriod = params.get("days") === "30" ? 30 : 7;
+  const [title, description] = showForDoctor ? ["给医生看", "当前用药、最近的读数和想问的问题。"] : headings[view];
+  const backTo = showForDoctor ? "/health/visit?days=" + visitPeriod : view === "overview" ? "/" : "/health";
+  return <CarePage {...textProps} title={title} description={description} tone="teal" backTo={backTo}
+    backLabel={showForDoctor ? "返回就诊准备" : undefined} backReplace={showForDoctor} focusTitle={showForDoctor}>
     {error && <p className="care-error" role="alert">{error}</p>}
     {view === "medication" && <p className="care-status" role="status">{status}</p>}
     {view === "overview" && <Overview book={book} today={today}/>}
     {view === "medication" && <MedicationPlans book={book} today={today} save={save}/>}
-    {view === "readings" && <HealthReadings book={book} save={save} status={status} clearStatus={clearStatus}/>}
+    {view === "readings" && <HealthReadings key={initialKind} book={book} save={save} status={status}
+      clearStatus={clearStatus} initialKind={initialKind}/>}
     {view === "assistant" && <HealthAssistant/>}
-    {view === "visit" && <HealthVisit book={book} today={today} save={save} saveStatus={status} clearStatus={clearStatus}/>}
+    {view === "visit" && <HealthVisit book={book} today={today} save={save} saveStatus={status}
+      clearStatus={clearStatus} showForDoctor={showForDoctor} requestedPeriod={visitPeriod}/>}
   </CarePage>;
 }
