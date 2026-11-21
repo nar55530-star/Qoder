@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { healthAiGateway } from "./server/health-ai.ts";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), healthAiGateway()],
   optimizeDeps: {
     include: ["lucide-react", "framer-motion", "recharts"],
   },
@@ -12,7 +13,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom", "recharts"],
+          vendor: ["react", "react-dom"],
           ui: ["lucide-react", "framer-motion"],
         },
       },

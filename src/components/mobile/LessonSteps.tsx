@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 
@@ -54,7 +54,7 @@ export default function LessonSteps({ lesson, tone = "green", storageKey, backTo
           {step.mock}
           {step.mock && mockNote ? <p className="wx-note">{mockNote}</p> : null}
         </section>
-        {lesson.fraud ? <aside className="fraud-banner"><strong>防骗提醒</strong><span>{lesson.fraud}</span></aside> : null}
+        {lesson.fraud ? <aside className="fraud-banner"><strong>防骗提醒</strong><span>{lesson.fraud}</span><Link className="fraud-read-more" to="/fraud">看看怎么核实</Link></aside> : null}
         {lesson.tip ? <p className="lesson-tip">小提示：{lesson.tip}</p> : null}
       </main>
       <nav className="lesson-controls">
